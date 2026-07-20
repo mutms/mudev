@@ -1,7 +1,7 @@
 # Recipe format
 
 A recipe is a complete Moodle site definition: core (at a branch/tag/commit) and a selection of
-plugins. The core it names may already be patched — MuTMS points `moodle.source` at a
+plugins. The core it names may already be patched — MuTMS points `base.source` at a
 pre-merged `patch/mutms/*` branch — so mudev merges nothing itself. Recipes live in the recipes directory
 (`MUDEV_RECIPES_DIRECTORY`, default `/opt/mdl-recipes`), grouped by vendor like plugins:
 
@@ -49,7 +49,7 @@ resolver — a composer assembler, mdl-demo's zip installer — applies its own 
 its install instructions and records its own single-kind artifact.) So `.mudev.json` depends on **no** plugins directory and **no**
 `catalog` — it fully describes and can rebuild the tree on its own, wherever it travels. The
 recorded ref is the *intended baseline*; mudev diffs it against the live git state (current
-branch, dirty, ahead/behind) for `status`. `moodle.mdlbranch` is retained mainly as a **cache** —
+branch, dirty, ahead/behind) for `status`. `base.mdlbranch` is retained mainly as a **cache** —
 a fast default-branch lookup so `mudev recipe add <plugin>` can resolve a newly added plugin's branch
 (via that plugin's `requirements` block) without re-deriving the target. It is **mudev-managed state**
 (JSON, composer.lock-style): you change it by running mudev, not by hand-editing. `extra` namespaces
@@ -64,7 +64,7 @@ name: MuTMS dev on Moodle 5.2
 catalog: ../../../mdl-plugins       # where bare-name references resolve (relative to this file)
 extra:
   mudev: {release: mutms}          # release workspace — enables tag + version.php + changelog, using the `mutms` flavour
-moodle:
+base:
   mdlbranch: "502"                   # Moodle $branch code (quoted string) — drives branch resolution
   source:                            # same shape as a plugin source (acquisition methods by kind)
     git:                             # mudev reads the `git` kind (zip/composer are reserved siblings)
@@ -92,11 +92,11 @@ plugins:
 | `based_on_recipe`    | no  | Live-recipe only: what `clone` was given — a catalogue identifier *or* a recipe file path (provenance); also the CC BY credit to a catalogue source (see below). |
 | `catalog`            | no  | Where bare-name references resolve; path relative to the file, or absolute. Defaults to `MUDEV_PLUGINS_DIRECTORY`. |
 | `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.release` = release flavour. See below. |
-| `moodle.mdlbranch`   | yes | Moodle `$branch` code (e.g. `502`). Drives plugin-branch resolution. |
-| `moodle.source`      | yes | How to acquire Moodle core — same shape as a plugin `source` (kinds by key; see below). Normally `git`: `git.remotes.origin` is the clone remote (name → URL) and `git.ref` is what to check out. |
-| `moodle.localbranch` | no  | Local branch name to create from a branch `source.git.ref` (default = the remote branch name). Lives *outside* `source`. See Refs. |
-| `moodle.strippublic` | no  | Strip the leading `public/` from every plugin `relpath` (pre-5.1 Moodle: 4.5, 5.0). |
-| `moodle.patches`     | no  | List of `{ repo, ref }` to merge over `ref`, in order. **Not implemented** — a recipe using it is rejected with a clear error. MuTMS ships a pre-merged `patch/mutms/*` core branch instead, so point `moodle.source` at that. |
+| `base.mdlbranch`     | yes | Moodle `$branch` code (e.g. `502`). Drives plugin-branch resolution. |
+| `base.source`        | yes | How to acquire Moodle core — same shape as a plugin `source` (kinds by key; see below). Normally `git`: `git.remotes.origin` is the clone remote (name → URL) and `git.ref` is what to check out. |
+| `base.localbranch`   | no  | Local branch name to create from a branch `source.git.ref` (default = the remote branch name). Lives *outside* `source`. See Refs. |
+| `base.strippublic`   | no  | Strip the leading `public/` from every plugin `relpath` (pre-5.1 Moodle: 4.5, 5.0). |
+| `base.patches`       | no  | List of `{ repo, ref }` to merge over `ref`, in order. **Not implemented** — a recipe using it is rejected with a clear error. MuTMS ships a pre-merged `patch/mutms/*` core branch instead, so point `base.source` at that. |
 | `plugins`            | yes | List of plugin entries; each is a **string** or an **object** (below). |
 
 ## Plugin entries — reference or inline
@@ -265,8 +265,8 @@ ad-hoc private recipes — a flat `somecustomer-4.5.12.yaml` per site, self-cont
 needed), otherwise it's a `vendor/stream/version` identifier loaded from `MUDEV_RECIPES_DIRECTORY`.
 Then:
 
-1. Read `moodle.mdlbranch`.
-2. Check `moodle.source.git.remotes.origin` out at `moodle.source.git.ref` into the **current
+1. Read `base.mdlbranch`.
+2. Check `base.source.git.remotes.origin` out at `base.source.git.ref` into the **current
    directory** (which the caller has already created with the right owner/permissions), then
    verify the result really is Moodle at that `mdlbranch` by reading its own `version.php` —
    a mismatch stops the run before a single plugin is installed.

@@ -78,7 +78,7 @@ flavour is diagnosed as "wrong binary" rather than "broken recipe".
 - **Installing a plugin's dependencies automatically.** `requirements` is information; composing
   a dev site is the developer's decision, and Moodle validates dependencies at install time.
   `recipe add` reports what a workspace is missing and stops there.
-- **`moodle.patches`.** Parsed and rejected with a clear error. MuTMS ships a pre-merged
+- **`base.patches`.** Parsed and rejected with a clear error. MuTMS ships a pre-merged
   `patch/mutms/*` core branch instead, so there is no need yet.
 - **Pinning an export to exact commits.** `export` records what the workspace was assembled to
   be. Freezing a tree to commit hashes is a different promise and would want its own command.

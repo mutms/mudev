@@ -10,7 +10,7 @@ import (
 // makes them evidence about a single keyword.
 const validRecipe = `
 name: baseline
-moodle:
+base:
   mdlbranch: "502"
   source:
     git:
@@ -97,7 +97,7 @@ func TestKeywordsAreEnforced(t *testing.T) {
 			doc:     strings.Replace(validRecipe, sourceBlock, "  source: {}\n", 1),
 		},
 		{
-			// moodle.patches entries take repo and ref only.
+			// base.patches entries take repo and ref only.
 			keyword: "additionalProperties",
 			kind:    KindRecipe,
 			doc: strings.Replace(validRecipe, "plugins:",

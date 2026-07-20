@@ -115,7 +115,7 @@ two: `workspace` merges a catalogue entry with a recipe entry on the *decoded do
 recipe untouched.
 
 `moodle` is deliberately a leaf of pure functions — acquiring a core checkout is git work, so
-`workspace` orchestrates it. `moodle.patches` is parsed but **not implemented** (MuTMS ships a
+`workspace` orchestrates it. `base.patches` is parsed but **not implemented** (MuTMS ships a
 pre-merged `patch/mutms/*` core branch); a recipe that uses it is rejected with a clear error.
 
 **Go 1.24 / dependencies.** The module targets Go 1.24, matching Debian trixie's `golang-go`,

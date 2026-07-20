@@ -12,7 +12,7 @@ name: MuTMS dev on Moodle 5.2
 catalog: ../../../mdl-plugins
 extra:
   mudev: {release: mutms}
-moodle:
+base:
   mdlbranch: "502"
   source:
     git:
@@ -34,8 +34,8 @@ func TestParse(t *testing.T) {
 		t.Fatalf("Parse: %v", err)
 	}
 
-	if r.Moodle.Mdlbranch != "502" || r.Moodle.Localbranch != "MOODLE_502_STABLE" {
-		t.Errorf("unexpected moodle block: %+v", r.Moodle)
+	if r.Base.Mdlbranch != "502" || r.Base.Localbranch != "MOODLE_502_STABLE" {
+		t.Errorf("unexpected moodle block: %+v", r.Base)
 	}
 
 	if r.Release() != "mutms" {
@@ -119,7 +119,7 @@ func TestFetchOrder(t *testing.T) {
 	r, err := Parse([]byte(`
 extra:
   mudev: {release: mutms, fetch_order: [forge, origin]}
-moodle:
+base:
   mdlbranch: "405"
   source: {git: {remotes: {origin: git@github.com:mutms/patches.git}}}
 plugins: []
@@ -133,7 +133,7 @@ plugins: []
 	}
 
 	// A recipe that says nothing about order is the normal case.
-	plain, err := Parse([]byte("moodle:\n  mdlbranch: \"405\"\n  source: {git: {remotes: {origin: x}}}\nplugins: []\n"))
+	plain, err := Parse([]byte("base:\n  mdlbranch: \"405\"\n  source: {git: {remotes: {origin: x}}}\nplugins: []\n"))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestFetchOrderMustBeAList(t *testing.T) {
 	_, err := Parse([]byte(`
 extra:
   mudev: {release: mutms, fetch_order: forge, origin}
-moodle:
+base:
   mdlbranch: "405"
   source: {git: {remotes: {origin: x}}}
 plugins: []
@@ -172,7 +172,7 @@ func TestExtraStaysOpenForOtherTools(t *testing.T) {
 extra:
   mudev: {release: mutms}
   othertool: {whatever: [1, 2, 3], nested: {deeply: true}}
-moodle:
+base:
   mdlbranch: "405"
   source: {git: {remotes: {origin: x}}}
 plugins:
@@ -192,13 +192,13 @@ func TestMudevNamespaceIsClosed(t *testing.T) {
 		"recipe level": `
 extra:
   mudev: {release: mutms, fetchorder: [forge, origin]}
-moodle:
+base:
   mdlbranch: "405"
   source: {git: {remotes: {origin: x}}}
 plugins: []
 `,
 		"plugin level": `
-moodle:
+base:
   mdlbranch: "405"
   source: {git: {remotes: {origin: x}}}
 plugins:

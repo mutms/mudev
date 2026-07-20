@@ -24,7 +24,7 @@
     "relpath": {
       "type": "string",
       "minLength": 1,
-      "description": "Explicit install path relative to the Moodle code root, in the newest (public/) layout. Never derived from the frankenstyle name. A recipe's moodle.strippublic strips the public/ prefix for older Moodle branches (pre-5.1)."
+      "description": "Explicit install path relative to the Moodle code root, in the newest (public/) layout. Never derived from the frankenstyle name. A recipe's base.strippublic strips the public/ prefix for older Moodle branches (pre-5.1)."
     },
     "source": {
       "type": "object",

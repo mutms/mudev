@@ -93,8 +93,8 @@ func Clone(ctx context.Context, opts Options) error {
 
 	c.banner()
 
-	if err := c.assembleCore(ctx); err != nil {
-		return fmt.Errorf("moodle core: %w", err)
+	if err := c.assembleBase(ctx); err != nil {
+		return fmt.Errorf("base: %w", err)
 	}
 
 	plugins, err := c.resolvePlugins()
@@ -121,9 +121,9 @@ func (c *cloner) load(arg string) error {
 		return err
 	}
 
-	if len(r.Moodle.Patches) > 0 {
+	if len(r.Base.Patches) > 0 {
 		return fmt.Errorf(
-			"%s: moodle.patches is not implemented — point moodle.source at a pre-merged core branch",
+			"%s: base.patches is not implemented — point base.source at a pre-merged core branch",
 			r.File,
 		)
 	}
@@ -213,7 +213,7 @@ func (c *cloner) banner() {
 	}
 
 	c.printf("recipe:      %s (%s)", name, c.source())
-	c.printf("moodle:      branch %s%s", c.recipe.Moodle.Mdlbranch, c.layoutNote())
+	c.printf("base:        branch %s%s", c.recipe.Base.Mdlbranch, c.layoutNote())
 
 	if c.flavour != "" {
 		c.printf("release:     %s", c.flavour)
@@ -234,7 +234,7 @@ func (c *cloner) banner() {
 // layoutNote spells out the code-root layout, since it decides every plugin
 // path in the tree.
 func (c *cloner) layoutNote() string {
-	if c.recipe.Moodle.Strippublic {
+	if c.recipe.Base.Strippublic {
 		return ", no public/ prefix"
 	}
 
@@ -257,26 +257,26 @@ func (c *cloner) source() string {
 // Nothing else in the workspace makes sense without a sound core — plugins
 // installed into a tree that is not Moodle are just directories — so this step
 // either leaves a verified checkout behind or fails the whole run.
-func (c *cloner) assembleCore(ctx context.Context) error {
-	gs, err := c.recipe.Moodle.GitSource()
+func (c *cloner) assembleBase(ctx context.Context) error {
+	gs, err := c.recipe.Base.GitSource()
 	if err != nil {
 		return err
 	}
 
 	ref := gs.Ref
 	if ref == "" {
-		return fmt.Errorf("moodle.source.git.ref is required")
+		return fmt.Errorf("base.source.git.ref is required")
 	}
 
 	switch {
 	case !git.IsRepo(c.root):
-		c.printf("moodle core: new checkout at %s", ref)
+		c.printf("base: new checkout at %s", ref)
 
 		if err := c.client.Init(ctx, c.root); err != nil {
 			return err
 		}
 
-		if err := c.acquire(ctx, c.root, gs.Remotes, ref, c.recipe.Moodle.Localbranch); err != nil {
+		if err := c.acquire(ctx, c.root, gs.Remotes, ref, c.recipe.Base.Localbranch); err != nil {
 			return err
 		}
 
@@ -285,14 +285,14 @@ func (c *cloner) assembleCore(ctx context.Context) error {
 		// the fetch never finished. Finish it rather than mistaking the bare
 		// .git directory for a checkout, which is how a workspace ends up with
 		// plugins installed on top of nothing.
-		c.printf("moodle core: incomplete checkout — completing it at %s", ref)
+		c.printf("base: incomplete checkout — completing it at %s", ref)
 
-		if err := c.acquire(ctx, c.root, gs.Remotes, ref, c.recipe.Moodle.Localbranch); err != nil {
+		if err := c.acquire(ctx, c.root, gs.Remotes, ref, c.recipe.Base.Localbranch); err != nil {
 			return err
 		}
 
 	default:
-		c.printf("moodle core: already checked out")
+		c.printf("base: already checked out")
 
 		if err := c.setRemotes(ctx, c.root, gs.Remotes); err != nil {
 			return err
@@ -305,21 +305,21 @@ func (c *cloner) assembleCore(ctx context.Context) error {
 		return err
 	}
 
-	if err := c.verifyCore(); err != nil {
+	if err := c.verifyBase(); err != nil {
 		return err
 	}
 
-	c.live.Moodle = c.coreDefinition(gs, ref)
+	c.live.Base = c.baseDefinition(gs, ref)
 
 	return c.live.Save(c.root)
 }
 
 // coreDefinition is the moodle block as recorded in the live recipe: the
 // recipe's own block, with source narrowed to the git kind that was used.
-func (c *cloner) coreDefinition(gs *recipe.GitSource, ref string) map[string]any {
-	definition := deepCopy(c.recipe.Moodle.Raw)
+func (c *cloner) baseDefinition(gs *recipe.GitSource, ref string) map[string]any {
+	definition := deepCopy(c.recipe.Base.Raw)
 
-	definition["mdlbranch"] = c.recipe.Moodle.Mdlbranch
+	definition["mdlbranch"] = c.recipe.Base.Mdlbranch
 
 	narrowSourceToGit(definition, gs.Remotes, ref)
 
@@ -333,21 +333,21 @@ func (c *cloner) coreDefinition(gs *recipe.GitSource, ref string) map[string]any
 // paths, the layout, the branch each plugin resolves to — is derived from the
 // recipe's claim about which Moodle this is, so a claim that does not hold
 // means the rest of the run would be building something nobody asked for.
-func (c *cloner) verifyCore() error {
-	strippublic := c.recipe.Moodle.Strippublic
+func (c *cloner) verifyBase() error {
+	strippublic := c.recipe.Base.Strippublic
 
 	branch, err := moodle.Branch(c.root, strippublic)
 	if err != nil {
 		return fmt.Errorf(
 			"the workspace root is not a usable Moodle %s code tree: %w",
-			c.recipe.Moodle.Mdlbranch, err,
+			c.recipe.Base.Mdlbranch, err,
 		)
 	}
 
-	if branch != c.recipe.Moodle.Mdlbranch {
+	if branch != c.recipe.Base.Mdlbranch {
 		return fmt.Errorf(
 			"%s says this is Moodle branch %s, but the recipe builds branch %s",
-			moodle.CoreVersionFile(strippublic), branch, c.recipe.Moodle.Mdlbranch,
+			moodle.CoreVersionFile(strippublic), branch, c.recipe.Base.Mdlbranch,
 		)
 	}
 

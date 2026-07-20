@@ -47,8 +47,8 @@ type Recipe struct {
 	// one key from it: extra.mudev.release.
 	Extra map[string]any `json:"extra,omitempty"`
 
-	// Moodle is the core to build the tree from.
-	Moodle Moodle `json:"moodle"`
+	// Base is the code tree the plugins are installed into.
+	Base Base `json:"base"`
 
 	// Plugins are the entries to install, in the author's (human) order —
 	// which is not the assembly order; mudev sorts by path.
@@ -65,8 +65,13 @@ type Recipe struct {
 	Identifier string `json:"-"`
 }
 
-// Moodle describes the core checkout.
-type Moodle struct {
+// Base describes the checkout the plugins are installed into.
+//
+// It is deliberately not called "moodle": what a recipe names here is Moodle
+// or a patched derivative of it, and MuTMS recipes point it at a pre-merged
+// patch branch. Calling a modified tree "Moodle" would be wrong on the facts
+// and wrong about the trademark.
+type Base struct {
 	// Mdlbranch is Moodle's $branch code as a string, e.g. "502". It drives
 	// per-plugin branch resolution.
 	Mdlbranch string `json:"mdlbranch"`
@@ -88,7 +93,7 @@ type Moodle struct {
 	// not apply them yet — MuTMS ships a pre-merged core branch instead.
 	Patches []Patch `json:"patches,omitempty"`
 
-	// Raw is the decoded moodle block, preserved for the live recipe.
+	// Raw is the decoded base block, preserved for the live recipe.
 	Raw map[string]any `json:"-"`
 }
 
@@ -215,8 +220,8 @@ func Parse(data []byte) (*Recipe, error) {
 
 	r.Raw = raw
 
-	if moodle, ok := raw["moodle"].(map[string]any); ok {
-		r.Moodle.Raw = moodle
+	if base, ok := raw["base"].(map[string]any); ok {
+		r.Base.Raw = base
 	}
 
 	return &r, nil
@@ -303,14 +308,14 @@ func (e *Entry) Ref() string {
 
 // GitSource returns the core's git acquisition block, or an error when the
 // recipe advertises no git source (mudev assembles from git only).
-func (m *Moodle) GitSource() (*GitSource, error) {
-	if m.Source == nil || m.Source.Git == nil {
-		return nil, fmt.Errorf("moodle.source has no git kind — mudev assembles from git")
+func (b *Base) GitSource() (*GitSource, error) {
+	if b.Source == nil || b.Source.Git == nil {
+		return nil, fmt.Errorf("base.source has no git kind — mudev assembles from git")
 	}
 
-	if m.Source.Git.Remotes["origin"] == "" {
-		return nil, fmt.Errorf("moodle.source.git.remotes.origin is required")
+	if b.Source.Git.Remotes["origin"] == "" {
+		return nil, fmt.Errorf("base.source.git.remotes.origin is required")
 	}
 
-	return m.Source.Git, nil
+	return b.Source.Git, nil
 }

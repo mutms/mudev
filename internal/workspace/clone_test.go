@@ -107,7 +107,7 @@ func writeRecipe(t *testing.T, path string, core string, plugin string, mdlbranc
 	t.Helper()
 
 	recipe := `name: test recipe
-moodle:
+base:
   mdlbranch: "` + mdlbranch + `"
   source:
     git:
@@ -320,7 +320,7 @@ func TestCloneFetchesEveryRemoteInOrder(t *testing.T) {
 	recipe := `name: mirrored
 extra:
   mudev: {fetch_order: [backup, origin]}
-moodle:
+base:
   mdlbranch: "502"
   source:
     git:
@@ -369,7 +369,7 @@ func TestCloneSurvivesAnUnreachableMirror(t *testing.T) {
 	recipe := `name: mirror down
 extra:
   mudev: {fetch_order: [backup, origin]}
-moodle:
+base:
   mdlbranch: "502"
   source:
     git:
@@ -422,7 +422,7 @@ func TestCloneStopsWhenOriginIsUnreachable(t *testing.T) {
 	recipePath := filepath.Join(base, "recipe.yaml")
 
 	recipe := `name: origin down
-moodle:
+base:
   mdlbranch: "502"
   source:
     git:
@@ -465,7 +465,7 @@ func TestCloneReportsWhatItIsDoing(t *testing.T) {
 	recipe := `name: Narrated recipe
 extra:
   mudev: {release: mutms, fetch_order: [backup, origin]}
-moodle:
+base:
   mdlbranch: "502"
   source:
     git:

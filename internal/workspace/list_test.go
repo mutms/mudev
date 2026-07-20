@@ -75,7 +75,7 @@ func TestDiscoverHandlesGitFile(t *testing.T) {
 const liveRecipe = `{
   "name": "test",
   "based_on_recipe": "mutms/dev/5.2",
-  "moodle": {
+  "base": {
     "mdlbranch": "502",
     "localbranch": "MOODLE_502_STABLE",
     "source": {
@@ -159,7 +159,7 @@ func TestRecordedReposStripsPublicForOlderMoodle(t *testing.T) {
 	root := t.TempDir()
 
 	// Pre-5.1 trees have no public/ directory.
-	stripped := `{"moodle":{"mdlbranch":"405","strippublic":true,"source":{"git":{"remotes":{"origin":"x"},"ref":"v4.5.12"}}},` +
+	stripped := `{"base":{"mdlbranch":"405","strippublic":true,"source":{"git":{"remotes":{"origin":"x"},"ref":"v4.5.12"}}},` +
 		`"plugins":[{"name":"mutms/tool_mulib","title":"x","relpath":"public/admin/tool/mulib",` +
 		`"requirements":{"MOODLE_405_STABLE":{"mdlbranches":["405"]}},` +
 		`"source":{"git":{"remotes":{"origin":"y"},"ref":"origin/MOODLE_405_STABLE"}}}]}`

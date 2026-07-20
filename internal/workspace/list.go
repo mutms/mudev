@@ -200,9 +200,9 @@ func recordedRepos(root string) (map[string]*Repo, []string, error) {
 
 	core := &Repo{Path: CoreDir, Core: true, Managed: true}
 
-	if gs, err := live.Moodle.GitSource(); err == nil {
+	if gs, err := live.Base.GitSource(); err == nil {
 		core.RecordedRef = gs.Ref
-		core.RecordedBranch = recordedBranch(gs.Ref, gs.Remotes, live.Moodle.Localbranch)
+		core.RecordedBranch = recordedBranch(gs.Ref, gs.Remotes, live.Base.Localbranch)
 	}
 
 	repos[CoreDir] = core
@@ -210,7 +210,7 @@ func recordedRepos(root string) (map[string]*Repo, []string, error) {
 	for i := range live.Plugins {
 		entry := live.Plugins[i]
 
-		relpath, err := moodle.PluginPath(entry.Relpath, live.Moodle.Strippublic)
+		relpath, err := moodle.PluginPath(entry.Relpath, live.Base.Strippublic)
 		if err != nil {
 			return nil, nil, fmt.Errorf("plugin %s: %w", entry.Name, err)
 		}

@@ -121,7 +121,7 @@ collection ordering) are **not** plugin facts at all and belong under a per-site
 name. It is the install path **relative to the Moodle code root**, stored in the **newest**
 Moodle layout (currently the `public/` prefix, introduced in Moodle **5.1** — 4.5 and 5.0 have
 no `public/`). For older Moodle branches without `public/`, the **recipe** sets
-`moodle.strippublic: true` and mudev strips the prefix — mudev never prepends. This keeps a
+`base.strippublic: true` and mudev strips the prefix — mudev never prepends. This keeps a
 single authoritative relpath per plugin and makes the transform explicit in the recipe rather
 than hidden in mudev.
 

@@ -83,7 +83,7 @@ func Add(ctx context.Context, opts AddOptions) error {
 		return err
 	}
 
-	c.printf("moodle:  branch %s%s", c.recipe.Moodle.Mdlbranch, c.layoutNote())
+	c.printf("base:    branch %s%s", c.recipe.Base.Mdlbranch, c.layoutNote())
 	c.printf("adding:  %s%s", requested.Name, from(requested.File))
 
 	if _, recorded := c.live.Plugin(requested.Name); recorded {
@@ -170,8 +170,8 @@ func (c *cloner) openWorkspace() error {
 
 	// Same rule as clone: a plugin installed into a tree that is not the Moodle
 	// it claims to be is just a directory.
-	if err := c.verifyCore(); err != nil {
-		return fmt.Errorf("moodle core: %w", err)
+	if err := c.verifyBase(); err != nil {
+		return fmt.Errorf("base: %w", err)
 	}
 
 	return nil

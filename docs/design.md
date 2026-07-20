@@ -14,7 +14,7 @@ test-site code tree in CI (forgejo-runner) for PHPUnit and Behat.
   with the **patched core pulled through composer** from the same `mutms/patches` repo (a `vcs`
   repository + `"moodle/moodle": "dev-patch/mutms/…"`). So one patches repo serves both mudev
   (git subtree/branch) and composer (vcs). A recipe → `composer.json` seed is a natural future
-  output (`source.composer` = package name, release version = constraint, `moodle` block =
+  output (`source.composer` = package name, release version = constraint, `base` block =
   core + patches vcs) — but generating those seeds is out of mudev's initial git-focused scope.
 - No database setup or Moodle phpunit/behat init (caller/`mpd` does that).
 - No macOS/Windows support (see `mdl-demo`).
@@ -42,7 +42,7 @@ vs `subtree-build-*.sh`):
   provenance. `extra.mudev: {release: <flavour>}` (recipe) + per-plugin `extra.mudev: {release: <flavour>}`
   gate which checkouts/plugins are release-managed (tag + version.php + changelog).
 
-Build mechanism (proven against public repos): clone `moodle.source.git.remotes.origin`@`moodle.source.git.ref`
+Build mechanism (proven against public repos): clone `base.source.git.remotes.origin`@`base.source.git.ref`
 (a pre-patched core branch), then `git subtree add --prefix <resolved-path> <source.git.remotes.origin>
 <resolved-branch> --squash` per plugin. Branch/path come straight from the catalogue + recipe.
 
@@ -50,7 +50,7 @@ Build mechanism (proven against public repos): clone `moodle.source.git.remotes.
 
 ```
 cli ──▶ workspace ──▶ plugin   (metadata: identity, path, requirements [support + deps])
-                 └──▶ recipe   (moodle + patches + plugin refs)
+                 └──▶ recipe   (the base tree + plugin refs)
                  └──▶ moodle   (path layout, version.php parsing)
                  └──▶ git      (exec `git`; URLs passed through untouched)
                               └──▶ exec (the only package that spawns a process)

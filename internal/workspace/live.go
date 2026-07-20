@@ -31,7 +31,7 @@ type Live struct {
 	ContributedBy any              `json:"contributed_by,omitempty"`
 	BasedOnRecipe any              `json:"based_on_recipe,omitempty"`
 	Extra         map[string]any   `json:"extra,omitempty"`
-	Moodle        map[string]any   `json:"moodle"`
+	Base          map[string]any   `json:"base"`
 	Plugins       []map[string]any `json:"plugins"`
 }
 

@@ -17,7 +17,7 @@ func bareRecipe(t *testing.T, path string, core string, mdlbranch string) {
 	t.Helper()
 
 	recipe := `name: plain moodle
-moodle:
+base:
   mdlbranch: "` + mdlbranch + `"
   source:
     git:

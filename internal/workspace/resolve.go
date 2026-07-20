@@ -109,7 +109,7 @@ func (c *cloner) resolveEntry(entry recipe.Entry, base map[string]any) (resolved
 		return out, fmt.Errorf("no source.git.remotes.origin to clone from")
 	}
 
-	path, err := moodle.PluginPath(def.Relpath, c.recipe.Moodle.Strippublic)
+	path, err := moodle.PluginPath(def.Relpath, c.recipe.Base.Strippublic)
 	if err != nil {
 		return out, err
 	}
@@ -120,7 +120,7 @@ func (c *cloner) resolveEntry(entry recipe.Entry, base map[string]any) (resolved
 
 	if ref == "" {
 		// No pin: resolve the branch that serves this recipe's Moodle version.
-		branch, err := def.BranchFor(c.recipe.Moodle.Mdlbranch)
+		branch, err := def.BranchFor(c.recipe.Base.Mdlbranch)
 		if err != nil {
 			return out, err
 		}

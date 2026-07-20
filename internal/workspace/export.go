@@ -165,7 +165,7 @@ var keyOrder = []string{
 	"requirements",
 	"patches",
 	"extra",
-	"moodle",
+	"base",
 	"plugins",
 }
 

@@ -6,7 +6,7 @@
   "type": "object",
   "additionalProperties": true,
   "required": [
-    "moodle",
+    "base",
     "plugins"
   ],
   "properties": {
@@ -78,9 +78,9 @@
         }
       }
     },
-    "moodle": {
+    "base": {
       "type": "object",
-      "description": "Moodle core to build the tree from.",
+      "description": "The base code tree plugins are installed into: Moodle, or a patched derivative of it.",
       "additionalProperties": true,
       "required": [
         "mdlbranch",

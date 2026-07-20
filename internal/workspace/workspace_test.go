@@ -84,7 +84,7 @@ func TestLiveRoundTrip(t *testing.T) {
 	live := &Live{
 		Name:          "smoke",
 		BasedOnRecipe: "mutms/full/5.2.1.01",
-		Moodle: map[string]any{
+		Base: map[string]any{
 			"mdlbranch": "502",
 			"source": map[string]any{
 				"git": map[string]any{

@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mutms/mudev/main/schema/recipe.schema.json",
+  "title": "mudev recipe",
+  "description": "A Moodle site definition: core (+ optional patches) and a selection of plugins. The same schema validates a source recipe (mdl-recipes/<vendor>/<name>.yaml) and the resolved live recipe written to a checkout's .mudev.json — the latter fully flattened: every plugin's catalogue definition (relpath, source, requirements, ...) merged inline with the checked-out ref (a branch for a dev workspace, or a tag/commit for a pinned edition), so it needs no plugins directory or catalog.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "moodle",
+    "plugins"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable recipe label."
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line human summary of what this recipe builds and who it is for."
+    },
+    "catalog": {
+      "type": "string",
+      "description": "Where bare-name plugin references resolve. Path relative to this file, or absolute. Defaults to MUDEV_PLUGINS_DIRECTORY when omitted."
+    },
+    "contributed_by": {
+      "description": "Attribution party for this recipe under CC BY 4.0 (also asserts recipe authorship/ownership). Reusers must retain it (see the catalogue README). A name or list of names. In a resolved .mudev.json this identifies the project owner, NOT the source recipe author (see based_on_recipe).",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
+    },
+    "based_on_recipe": {
+      "description": "For a live recipe (.mudev.json): the source it was cloned from — a catalogue identifier (vendor/stream/version) or, when cloned from a recipe file, that file's path (provenance). This is also the CC BY attribution to a catalogue source (crediting it and indicating adaptation) — used instead of copying the source's top-level contributed_by. Inlined plugin entries still retain their own contributed_by.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
+    },
+    "extra": {
+      "type": "object",
+      "description": "Tool-namespaced extension config (composer-style). Each key is a tool name; its value is that tool's own config, opaque to this schema — so tools extend recipes without schema churn. Present at the recipe top level and on each plugin entry. mudev reads two keys. `extra.mudev.release`: a flavour name (string). Recipe-level `release: <flavour>` marks a release workspace under that flavour's rules (tag + version.php $version/$release + changelog); plugin-level `release: <flavour>` marks the plugin release-managed. Absent = read-only build/consume. `extra.mudev.fetch_order`: a list of remote names contacted first, in that order, e.g. [backup, origin] — mudev fetches EVERY remote of every checkout, and this decides who is asked first, so a mirror on the local network fills the object store and leaves the slow remote only the difference to send. Remotes not listed are still fetched, after the listed ones; names a given checkout lacks are skipped. Future consumers (composer assembler, catalogue site) use their own `extra.<tool>` namespace.",
+      "additionalProperties": true,
+      "properties": {
+        "mudev": {
+          "type": "object",
+          "description": "mudev's own namespace, and the only one this schema defines. It is CLOSED: every key mudev reads is listed here, so a typo (fetchorder, releases) is a schema error rather than a setting that silently does nothing. mudev's schema and binary ship together, so new keys arrive with the version that reads them. Other tools keep their own extra.<tool> namespace, which this schema does not constrain.",
+          "additionalProperties": false,
+          "properties": {
+            "release": {
+              "type": "string",
+              "description": "Release flavour name, e.g. mutms. Recipe-level: this workspace is a release workspace under that flavour's rules (tag + version.php + changelog). Plugin-level: this plugin is release-managed, and the flavour must match the recipe's."
+            },
+            "fetch_order": {
+              "type": "array",
+              "description": "Remote names to fetch first, in this order, e.g. [forge, origin]. Must be a LIST, not a comma-separated string. mudev fetches every remote of every checkout; this only decides who is asked first, so a mirror on the local network fills the object store and leaves the slow remote only the difference to send. Unlisted remotes are still fetched afterwards; names a given checkout does not have are skipped.",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "moodle": {
+      "type": "object",
+      "description": "Moodle core to build the tree from.",
+      "additionalProperties": true,
+      "required": [
+        "mdlbranch",
+        "source"
+      ],
+      "properties": {
+        "mdlbranch": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "description": "Moodle $branch code as a string (e.g. \"502\"). Indexes a plugin's `requirements` block (via its `mdlbranches`) for branch resolution."
+        },
+        "source": {
+          "$ref": "#/$defs/source",
+          "description": "How mudev acquires Moodle core. Normally one `git` kind: `git.remotes.origin` is the clone remote and `git.ref` is the branch (`origin/patch/mutms/MOODLE_502_STABLE`) or a pinned tag."
+        },
+        "localbranch": {
+          "type": "string",
+          "description": "Local branch name to create from a branch `source.git.ref` (git `switch -c <localbranch> <ref>`). Defaults to the remote branch name. Use it to drop a prefix — e.g. ref `origin/patch/mutms/MOODLE_502_STABLE` → local `MOODLE_502_STABLE`. Ignored when the ref is a tag/commit."
+        },
+        "strippublic": {
+          "type": "boolean",
+          "description": "Strip the leading public/ from every plugin path (older Moodle branches without the public/ layout)."
+        },
+        "patches": {
+          "type": "array",
+          "description": "Patch branches merged over ref, in order.",
+          "items": {
+            "type": "object",
+            "required": [
+              "repo",
+              "ref"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "repo": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "description": "Plugin entries: a bare identifier (resolved via catalog), or an object with per-plugin annotations and/or a full inline definition.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Bare plugin identifier reference, resolved via catalog.",
+            "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]?|-{0,2})[a-z0-9]+)*$"
+          },
+          {
+            "type": "object",
+            "description": "Reference with overrides, or a full inline plugin definition. Its own fields match the plugin data model (source, relpath, …); the version to check out is `source.git.ref`; tool flags live under `extra`. Left open (additionalProperties) so a reference may carry a partial `source` — e.g. just `source.git.ref` to pin an edition, with remotes merged from the catalogue.",
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true,
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]?|-{0,2})[a-z0-9]+)*$"
+              },
+              "localbranch": {
+                "type": "string",
+                "description": "Local branch name to create from a branch `source.git.ref` (git `switch -c <localbranch> <ref>`). Defaults to the remote branch name. Ignored when the ref is a tag/commit."
+              },
+              "extra": {
+                "type": "object",
+                "description": "Tool-namespaced flags for this plugin in this recipe (composer-style; opaque to this schema). mudev reads `extra.mudev.release` — a flavour name (e.g. {release: mutms}) marking the plugin release-managed. Owner state: hand-authored in a source recipe; in the mudev-managed .mudev.json it is set via mudev commands, not by hand.",
+                "additionalProperties": true,
+                "properties": {
+                  "mudev": {
+                    "type": "object",
+                    "description": "mudev's own namespace, and the only one this schema defines. It is CLOSED: every key mudev reads is listed here, so a typo (fetchorder, releases) is a schema error rather than a setting that silently does nothing. mudev's schema and binary ship together, so new keys arrive with the version that reads them. Other tools keep their own extra.<tool> namespace, which this schema does not constrain.",
+                    "additionalProperties": false,
+                    "properties": {
+                      "release": {
+                        "type": "string",
+                        "description": "Release flavour name, e.g. mutms. Recipe-level: this workspace is a release workspace under that flavour's rules (tag + version.php + changelog). Plugin-level: this plugin is release-managed, and the flavour must match the recipe's."
+                      },
+                      "fetch_order": {
+                        "type": "array",
+                        "description": "Remote names to fetch first, in this order, e.g. [forge, origin]. Must be a LIST, not a comma-separated string. mudev fetches every remote of every checkout; this only decides who is asked first, so a mirror on the local network fills the object store and leaves the slow remote only the difference to send. Unlisted remotes are still fetched afterwards; names a given checkout does not have are skipped.",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "description": "Acquisition methods for the code, as a map of one-or-more source kinds that can COEXIST — each consumer picks the kind it supports (mudev reads `git`; a composer-based assembler reads `composer`; a plain installer would read `zip`). The kind is the KEY (no `type` discriminator), so a catalogue entry can advertise several ways to get the same plugin at once. Each kind is self-contained — it names where the bits are AND which version: git → `remotes` + `ref`; `composer` → package name (constraint derived from the recipe's release version); a future `zip` → `url` + `sha256`. `git` and `composer` are defined today; `zip` is a reserved sibling.",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "composer": {
+          "type": "string",
+          "description": "Composer acquisition: the Packagist package name. Presence = published on Packagist; absence = not. The version constraint is derived from the recipe's release version, not stored here.",
+          "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]?|-{0,2})[a-z0-9]+)*$"
+        },
+        "git": {
+          "type": "object",
+          "description": "Git acquisition: named remotes plus the ref to check out.",
+          "required": [
+            "remotes"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "remotes": {
+              "type": "object",
+              "description": "Git remotes as name → URL string. `origin` is the primary clone remote; `upstream` (forks) and `backup` (mirror) are optional. A `<remote>/<branch>` ref resolves its remote name here.",
+              "required": [
+                "origin"
+              ],
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              },
+              "properties": {
+                "origin": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "upstream": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "ref": {
+              "type": "string",
+              "description": "What to check out. For a branch, git's remote-tracking spelling `<remote>/<branch>` where `<remote>` is a key from `remotes` (default `origin`, e.g. `origin/MOODLE_500_STABLE`); or a tag/commit for a pinned edition. Absent in the public catalogue (resolved per recipe). A recipe reference may set just this (remotes merged from the catalogue)."
+            }
+          }
+        }
+      }
+    }
+  }
+}

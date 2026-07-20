@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mutms/mudev/main/schema/plugin.schema.json",
+  "title": "mudev plugin definition",
+  "description": "A Moodle plugin catalogue entry: public, generic, stable facts about a plugin. Used standalone in mdl-plugins/<vendor>/<package>.yaml and inline inside recipes. Kept intentionally open (additionalProperties) so a future catalogue website can add presentation metadata without breaking mudev.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name", "title", "relpath", "requirements"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Composer-style vendor/package identifier and the map key everywhere — the clean bare frankenstyle form (no 'moodle-' prefix). The actual registered Packagist/composer package name may differ (Moodle's plugin guidelines prefix it with 'moodle-') and is recorded in the `composer` field, not here.",
+      "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]?|-{0,2})[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human display name for a catalogue UI (e.g. \"Programs\", not the meaningless slug `tool_muprog`). The canonical English fallback — composer has no title field, so this is a mudev/catalogue extension. Localized names are NOT stored here; a catalogue site reads them from the plugin's own lang packs (lang/<xx>/<component>.php `$string['pluginname']`) and falls back to this."
+    },
+    "description": {
+      "type": "string",
+      "description": "Short one-line human summary (the composer `description`). Long-form copy is the repo README (Packagist convention), not stored here."
+    },
+    "relpath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Explicit install path relative to the Moodle code root, in the newest (public/) layout. Never derived from the frankenstyle name. A recipe's moodle.strippublic strips the public/ prefix for older Moodle branches (pre-5.1)."
+    },
+    "source": {
+      "type": "object",
+      "description": "Acquisition methods for the code, as a map of one-or-more source kinds that can COEXIST — each consumer picks the kind it supports (mudev reads `git`; a composer-based assembler reads `composer`; a plain installer would read `zip`). The kind is the KEY (no `type` discriminator), so one entry can advertise several ways to get the same plugin at once. Optional overall (a catalogue may advertise a plugin with no clone source; mudev errors only when an install needs git). The catalogue defines `git` and `composer` today; `zip` is a reserved sibling.",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "git": {
+          "type": "object",
+          "description": "Git acquisition: named remotes plus (in a recipe) the ref to check out.",
+          "required": ["remotes"],
+          "additionalProperties": true,
+          "properties": {
+            "remotes": {
+              "type": "object",
+              "description": "Git remotes as name → URL string. `origin` is the primary clone remote; `upstream` (forks) and `backup` (mirror) are optional.",
+              "required": ["origin"],
+              "additionalProperties": { "type": "string", "minLength": 1 },
+              "properties": {
+                "origin": { "type": "string", "minLength": 1 },
+                "upstream": { "type": "string", "minLength": 1 }
+              }
+            },
+            "ref": {
+              "type": "string",
+              "description": "Version selector — normally absent in the public catalogue (resolved per recipe). git's `<remote>/<branch>` for a branch, or a tag/commit."
+            }
+          }
+        },
+        "composer": {
+          "type": "string",
+          "description": "Composer acquisition: the Packagist package name. Presence = the plugin is published on Packagist (commonly Moodle's `moodle-`prefixed form, which differs from the frankenstyle `name`); absence = not on Packagist. The version constraint is not stored here — a composer-based assembler derives it from the recipe's release version.",
+          "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]?|-{0,2})[a-z0-9]+)*$"
+        }
+      }
+    },
+    "homepage": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier, e.g. GPL-3.0-or-later."
+    },
+    "contributed_by": {
+      "description": "Attribution party for this catalogue entry under CC BY 4.0. Reusers must retain it (see the catalogue README). A name or list of names.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
+    },
+    "requirements": {
+      "type": "object",
+      "description": "Per-git-branch support and dependencies — merges the old `supported` (Moodle compatibility) and `require` (plugin deps) into one branch-keyed block, because both are properties of a branch, not of the plugin globally. Keyed by the git branch that serves a set of Moodle versions (`MOODLE_500_STABLE` → mdlbranches 500/501/502); keys are branch names (safe strings), while the numeric `mdlbranch` codes stay VALUES inside `mdlbranches`, never object keys (numeric object keys get reordered by JS and coerced to ints by PHP — unsafe cross-language). mudev inverts this to an mdlbranch→branch lookup at load (erroring on a duplicate mdlbranch across branches) to resolve a bare reference at a recipe's mdlbranch; the pick is advisory (Moodle validates at install; a recipe that pins source.git.ref bypasses it). Named `requirements` after Moodle's version.php `$plugin->requires`/dependencies.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "description": "What this git branch needs: the Moodle branches it serves, and the plugins it depends on.",
+        "required": ["mdlbranches"],
+        "additionalProperties": false,
+        "properties": {
+          "mdlbranches": {
+            "type": "array",
+            "description": "Moodle $branch codes (as strings) that this git branch serves. mudev checks the branch out for a bare reference at any of these codes.",
+            "minItems": 1,
+            "items": { "type": "string", "pattern": "^[0-9]+$" }
+          },
+          "plugins": {
+            "type": "array",
+            "description": "Plugin identifiers this branch depends on (resolved via catalog at the same mdlbranch — no version constraint needed, the branch context supplies it). Omit when there are no dependencies.",
+            "items": { "type": "string", "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]?|-{0,2})[a-z0-9]+)*$" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -104,3 +104,125 @@ func TestAddExclude(t *testing.T) {
 		t.Errorf("second pattern missing:\n%s", content)
 	}
 }
+
+// TestShallowFetchThenUnshallow covers the pinned-edition path end to end
+// against real git: a tag fetched with --depth 1 lands one commit and reports
+// itself shallow, and unshallowing fills the history back in.
+//
+// The saving is the point of the feature — Moodle core at a release tag is
+// ~989 MB of .git full and ~80 MB shallow — so the property under test is
+// "history is genuinely absent", not merely "the flag was passed".
+func TestShallowFetchThenUnshallow(t *testing.T) {
+	ctx := context.Background()
+	c := &Client{}
+
+	// An origin with several commits and a tag on the last one, so a
+	// depth-1 fetch of that tag is provably fewer commits than the whole.
+	origin := t.TempDir()
+	mustGit(t, origin, "init", "--quiet", "-b", "main")
+	mustGit(t, origin, "config", "user.email", "t@example.org")
+	mustGit(t, origin, "config", "user.name", "t")
+	// The developer's own git config may sign commits; a fixture must not
+	// depend on an agent being reachable.
+	mustGit(t, origin, "config", "commit.gpgsign", "false")
+
+	for i := range 3 {
+		name := filepath.Join(origin, fmt.Sprintf("f%d", i))
+		if err := os.WriteFile(name, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		mustGit(t, origin, "add", ".")
+		mustGit(t, origin, "commit", "--quiet", "-m", fmt.Sprintf("c%d", i))
+	}
+	// Two tags, so the test can prove the fetch takes ONE of them. `--tags`
+	// instead of `tag <name>` measured 447 MB and 575 tags against Moodle
+	// where the right refspec takes 77 MB and one — a regression that would
+	// otherwise pass every "is it shallow?" assertion.
+	mustGit(t, origin, "tag", "v0.9", "HEAD~1")
+	mustGit(t, origin, "tag", "v1.0")
+
+	dir := t.TempDir()
+	if err := c.Init(ctx, dir); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := c.SetRemote(ctx, dir, "origin", "file://"+origin); err != nil {
+		t.Fatalf("set remote: %v", err)
+	}
+
+	if err := c.FetchShallowTag(ctx, dir, "origin", "v1.0"); err != nil {
+		t.Fatalf("shallow fetch: %v", err)
+	}
+	if got := tagCount(t, dir); got != 1 {
+		t.Errorf("shallow fetch brought %d tags, want only the one asked for", got)
+	}
+	if !c.IsShallow(ctx, dir) {
+		t.Fatal("repository does not report itself shallow after --depth 1")
+	}
+	if got := commitCount(t, dir, "v1.0"); got != 1 {
+		t.Errorf("shallow fetch brought %d commits, want 1", got)
+	}
+
+	if err := c.Unshallow(ctx, dir, "origin"); err != nil {
+		t.Fatalf("unshallow: %v", err)
+	}
+	if c.IsShallow(ctx, dir) {
+		t.Error("still reports itself shallow after --unshallow")
+	}
+	if got := commitCount(t, dir, "v1.0"); got != 3 {
+		t.Errorf("after unshallow %d commits, want 3", got)
+	}
+}
+
+// TestIsShallowOnOrdinaryRepo guards the negative: a normal checkout must not
+// be mistaken for a shallow one, or every fetch would pay for an unshallow
+// that has nothing to do.
+func TestIsShallowOnOrdinaryRepo(t *testing.T) {
+	ctx := context.Background()
+	c := &Client{}
+
+	dir := t.TempDir()
+	if err := c.Init(ctx, dir); err != nil {
+		t.Fatal(err)
+	}
+	if c.IsShallow(ctx, dir) {
+		t.Error("a freshly initialised repository reports itself shallow")
+	}
+}
+
+func tagCount(t *testing.T, dir string) int {
+	t.Helper()
+	c := &Client{}
+	out, err := c.capture(t.Context(), dir, "tag", "-l")
+	if err != nil {
+		t.Fatalf("tag -l: %v", err)
+	}
+	if strings.TrimSpace(out) == "" {
+		return 0
+	}
+	return len(strings.Split(strings.TrimSpace(out), "\n"))
+}
+
+func mustGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	c := &Client{}
+	if err := c.run(t.Context(), dir, args...); err != nil {
+		t.Fatalf("git %s: %v", strings.Join(args, " "), err)
+	}
+}
+
+// commitCount counts reachable commits from ref. Counted from the fetched
+// ref rather than HEAD: mudev fetches before it checks anything out, which is
+// exactly the state under test.
+func commitCount(t *testing.T, dir string, ref string) int {
+	t.Helper()
+	c := &Client{}
+	out, err := c.capture(t.Context(), dir, "rev-list", "--count", ref)
+	if err != nil {
+		t.Fatalf("rev-list: %v", err)
+	}
+	n := 0
+	if _, err := fmt.Sscanf(strings.TrimSpace(out), "%d", &n); err != nil {
+		t.Fatalf("parse %q: %v", out, err)
+	}
+	return n
+}

@@ -71,6 +71,19 @@ func fetchRemotes(ctx context.Context, client *git.Client, dir string, order []s
 
 	ordered := orderRemotes(remotes, order)
 
+	// A shallow checkout — a pinned edition assembled with --depth 1 — is
+	// deepened before anything else happens. Asking for a fetch is asking
+	// for history, and mudev has no business making the caller discover
+	// git's "unshallow first" errors on their own. One-way on purpose:
+	// nothing re-shallows a checkout that has been filled in.
+	if client.IsShallow(ctx, dir) {
+		out.stepf("unshallow %s (was assembled shallow)", OriginRemote)
+
+		if err := client.Unshallow(ctx, dir, OriginRemote); err != nil {
+			return err
+		}
+	}
+
 	for i, name := range ordered {
 		// Say which remote the transfer that follows is coming from: git's own
 		// progress does not, and "1.2M objects" from a LAN mirror and from

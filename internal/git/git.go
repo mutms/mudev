@@ -159,6 +159,38 @@ func (c *Client) Fetch(ctx context.Context, dir string, remote string) error {
 	return c.run(ctx, dir, "fetch", "--tags", remote)
 }
 
+// FetchShallowTag fetches one tag and its tip commit, and nothing else.
+//
+// `tag <name>`, emphatically not `--tags`: the latter brings EVERY tag, and
+// at depth 1 each one drags its own tree along. Measured against Moodle:
+// --tags is 447 MB and 575 tags, `tag v4.5.12` is 77 MB and one — the
+// difference between shallow being worth doing and not.
+//
+// Fails when ref is not a tag, which is how the caller learns to fall back to
+// a full fetch (a commit pin cannot be fetched shallowly from every server).
+func (c *Client) FetchShallowTag(ctx context.Context, dir string, remote string, ref string) error {
+	return c.run(ctx, dir, "fetch", "--depth", "1", remote, "tag", ref)
+}
+
+// IsShallow reports whether dir has a truncated history.
+//
+// Asked of git rather than recorded by mudev: git owns this fact (.git/shallow),
+// and a copy in the live recipe would start lying the moment someone runs
+// `git fetch --unshallow` by hand.
+func (c *Client) IsShallow(ctx context.Context, dir string) bool {
+	out, err := c.capture(ctx, dir, "rev-parse", "--is-shallow-repository")
+	return err == nil && strings.TrimSpace(out) == "true"
+}
+
+// Unshallow restores the full history of a shallow checkout.
+//
+// Run before any fetch or pull: a shallow checkout is an assembly-time
+// optimisation, and the moment someone asks for history they should simply
+// have it rather than meet git's "unshallow first" errors.
+func (c *Client) Unshallow(ctx context.Context, dir string, remote string) error {
+	return c.run(ctx, dir, "fetch", "--unshallow", "--tags", remote)
+}
+
 // Pull updates the current branch from its upstream, fast-forward only.
 //
 // Refusing anything but a fast-forward is the point: a divergence needs a

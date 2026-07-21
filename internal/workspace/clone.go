@@ -445,13 +445,46 @@ func (c *cloner) acquire(ctx context.Context, dir string, remotes map[string]str
 		return err
 	}
 
-	// Every remote is fetched, in the recipe's order — a near mirror first
-	// leaves origin with only the difference to send.
-	if err := fetchRemotes(ctx, c.client, dir, c.recipe.FetchOrder(), c.out); err != nil {
-		return err
+	_, branch, isBranch := git.SplitBranchRef(ref, remotes)
+
+	// A pinned edition from a single remote needs one commit, not a decade
+	// of history: Moodle core at a release tag is ~989 MB of .git full and
+	// ~80 MB shallow. Three conditions, all of which must hold:
+	//
+	//   - the ref is a tag or commit, not a branch. A branch checkout is
+	//     something a developer works in, and log/blame there must work.
+	//   - exactly one remote. fetch_order exists for LAN mirrors, and a
+	//     shallow repository deepened from a different remote than it was
+	//     shallowed from is a bad time.
+	//   - not a release workspace. That flavour tags, edits version.php and
+	//     writes changelogs, all of which want the history and the tags.
+	//
+	// Nothing is recorded about it here: git knows (.git/shallow), and any
+	// later fetch or pull unshallows first (see fetchRemotes).
+	shallow := false
+
+	if !isBranch && len(remotes) == 1 && c.recipe.Release() == "" {
+		for name := range remotes {
+			c.stepf("fetch %s (shallow, %s only)", name, ref)
+
+			if err := c.client.FetchShallowTag(ctx, dir, name, ref); err == nil {
+				shallow = true
+			} else {
+				// Not a tag — a commit pin, which not every server will
+				// serve shallowly. Fall through to the full fetch rather
+				// than fail: a slower assembly beats none.
+				c.out.warnf("shallow fetch of %s failed (%v) — fetching in full", ref, err)
+			}
+		}
 	}
 
-	_, branch, isBranch := git.SplitBranchRef(ref, remotes)
+	if !shallow {
+		if err := fetchRemotes(ctx, c.client, dir, c.recipe.FetchOrder(), c.out); err != nil {
+			// Every remote is fetched, in the recipe's order — a near
+			// mirror first leaves origin with only the difference to send.
+			return err
+		}
+	}
 
 	if !isBranch {
 		// A tag or commit — a pinned edition — is checked out detached; there

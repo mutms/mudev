@@ -21,12 +21,13 @@ test-site code tree in CI (forgejo-runner) for PHPUnit and Behat.
 
 ## Two run modes
 
-| Mode | Where          | Catalogs                               | Git access                           | Binary                   |
-|------|----------------|----------------------------------------|--------------------------------------|--------------------------|
-| Dev  | `/opt/mudev`   | `/opt/mdl-plugins`, `/opt/mdl-recipes` | `git@…` remotes + an SSH agent       | `make build` from source |
-| CI   | forgejo-runner | YAML checked into CI workspace         | `https://…` remotes, anonymous       | pinned static binary     |
+| Mode | Where          | Catalogs                                           | Git access                     | Binary                   |
+|------|----------------|----------------------------------------------------|--------------------------------|--------------------------|
+| Dev  | `/opt/mudev`   | `/srv/extra/mdl-plugins`, `/srv/extra/mdl-recipes` | `git@…` remotes + an SSH agent | `make build` from source |
+| CI   | forgejo-runner | YAML checked into CI workspace                     | `https://…` remotes, anonymous | pinned static binary     |
 
-CI overrides everything via env/flags; dev relies on the shared `/opt` layout defaults.
+CI overrides everything via env/flags; dev relies on the shared catalogue defaults
+under `/srv/extra`.
 
 ## Assembly outputs
 

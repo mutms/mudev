@@ -34,17 +34,17 @@ make install          # optional: symlinks ~/.local/bin/mudev at it
 mudev --help
 ```
 
-With the standard `/opt` layout, mudev finds `/opt/mdl-plugins` and `/opt/mdl-recipes`
-automatically. See [docs/build.md](docs/build.md) for CI binaries.
+With the standard layout, mudev finds `/srv/extra/mdl-plugins` and
+`/srv/extra/mdl-recipes` automatically. See [docs/build.md](docs/build.md) for CI binaries.
 
 ## Configuration
 
 There are two settings, and each resolves **flag > environment > built-in default**.
 
-| Environment               | Flag            | Default            | What             |
-|---------------------------|-----------------|--------------------|------------------|
-| `MUDEV_PLUGINS_DIRECTORY` | `--plugins-dir` | `/opt/mdl-plugins` | plugin catalogue |
-| `MUDEV_RECIPES_DIRECTORY` | `--recipes-dir` | `/opt/mdl-recipes` | recipe catalogue |
+| Environment               | Flag            | Default                  | What             |
+|---------------------------|-----------------|--------------------------|------------------|
+| `MUDEV_PLUGINS_DIRECTORY` | `--plugins-dir` | `/srv/extra/mdl-plugins` | plugin catalogue |
+| `MUDEV_RECIPES_DIRECTORY` | `--recipes-dir` | `/srv/extra/mdl-recipes` | recipe catalogue |
 
 **There is no git authentication configuration, deliberately.** A recipe names the URL it means
 — `git@github.com:…` for a checkout you push from, `https://…` for one you only read — and mudev

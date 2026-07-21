@@ -54,16 +54,16 @@ func TestResolveMakesDirectoriesAbsolute(t *testing.T) {
 
 func TestAnchorUsesTheFilesDirectory(t *testing.T) {
 	// The rule for paths *inside* a YAML file: relative to that file.
-	got, err := Anchor("/opt/mdl-recipes/mutms/dev/5.2.yaml", "../../../mdl-plugins")
+	got, err := Anchor("/srv/extra/mdl-recipes/mutms/dev/5.2.yaml", "../../../mdl-plugins")
 	if err != nil {
 		t.Fatalf("Anchor: %v", err)
 	}
 
-	if want := "/opt/mdl-plugins"; got != want {
+	if want := "/srv/extra/mdl-plugins"; got != want {
 		t.Errorf("Anchor = %q, want %q", got, want)
 	}
 
-	got, err = Anchor("/opt/mdl-recipes/x.yaml", "/absolute/stays")
+	got, err = Anchor("/srv/extra/mdl-recipes/x.yaml", "/absolute/stays")
 	if err != nil {
 		t.Fatalf("Anchor: %v", err)
 	}

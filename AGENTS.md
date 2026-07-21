@@ -22,20 +22,41 @@ Moodle (and, longer term, general Moodle development). It replaces the old PHP t
 
 ## Canonical layout
 
-Everything lives as siblings under `/opt`:
+The source tree lives under `/opt`; the three YAML catalogues are siblings
+under `/srv/extra`:
 
-| Path               | What                                                                   |
-|--------------------|------------------------------------------------------------------------|
-| `/opt/mudev`       | this source tree — developers keep it here and `make build`            |
-| `/opt/mdl-plugins` | plugin metadata YAML (separate repo) — the default `--plugins-dir`     |
-| `/opt/mdl-recipes` | public recipe YAML (separate repo) — the default `--recipes-dir`       |
-| `/opt/dev-recipes` | private recipe YAML (separate repo) — may not be present               |
+| Path                     | What                                                                   |
+|--------------------------|------------------------------------------------------------------------|
+| `/opt/mudev`             | this source tree — developers keep it here and `make build`            |
+| `/srv/extra/mdl-plugins` | plugin metadata YAML (separate repo) — the default `--plugins-dir`     |
+| `/srv/extra/mdl-recipes` | public recipe YAML (separate repo) — the default `--recipes-dir`       |
+| `/srv/extra/dev-recipes` | private recipe YAML (separate repo) — may not be present               |
+
+The split is deliberate. `/opt/mudev` is a build artefact: delete it and
+`make build` reproduces it from a public remote. The catalogues are *content*.
+
+`/srv/extra` is **mudev's canonical catalogue location in any environment**,
+not an mpd path that mudev happens to borrow. mpd is mudev's home, so the
+layout is named after what the catalogues are rather than after who provides
+them; another host — the `mdl-demo` fat container, say — creates `/srv/extra`
+in turn. That is also why the defaults are hardcoded rather than injected via
+`MUDEV_*_DIRECTORY` by whoever provisions the machine.
+
+It happens to fall out well on mpd, where `/srv` is the data volume: visible
+from the VM and from every runtime container at the same path, and outliving
+any single runtime, which `/opt` inside a container does not. `dev-recipes` is
+the one that makes that matter — hand-maintained, private, and with nowhere to
+push.
+
+The catalogues stay siblings of each other, so a recipe's relative path to the
+plugin catalogue (`../../../mdl-plugins`) resolves exactly as it did under the
+old all-of-it-under-`/opt` layout.
 
 The two recipe repositories differ in kind, not just in visibility. `mdl-recipes` is the public
 catalogue: `https://…` remotes, read-only, what CI and other people consume. `dev-recipes` holds
 the working recipes for MuTMS development — `git@…` remotes for push access, extra remotes like
 a LAN mirror (`fetch_order`), `extra.mudev: {release: mutms}`. It is not a default, so reach it
-by path (`mudev clone /opt/dev-recipes/mutms/dev/5.2.yaml`) or by pointing
+by path (`mudev clone /srv/extra/dev-recipes/mutms/dev/5.2.yaml`) or by pointing
 `MUDEV_RECIPES_DIRECTORY` at it. **Never move a `git@…` dev recipe into the public catalogue.**
 
 Developers build mudev from source (fixing bugs = recompile). CI uses a self-contained
@@ -45,8 +66,8 @@ static binary with plugin/recipe YAML checked into the CI workspace.
 
 | Env var                    | Flag             | Default            |
 |----------------------------|------------------|--------------------|
-| `MUDEV_PLUGINS_DIRECTORY`  | `--plugins-dir`  | `/opt/mdl-plugins` |
-| `MUDEV_RECIPES_DIRECTORY`  | `--recipes-dir`  | `/opt/mdl-recipes` |
+| `MUDEV_PLUGINS_DIRECTORY`  | `--plugins-dir`  | `/srv/extra/mdl-plugins` |
+| `MUDEV_RECIPES_DIRECTORY`  | `--recipes-dir`  | `/srv/extra/mdl-recipes` |
 
 That is the whole of it. **mudev has no git authentication configuration, and adding some would
 be a regression** — no URL rewriting, no token injection. A recipe names the URL it means

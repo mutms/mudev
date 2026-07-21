@@ -6,7 +6,8 @@ everything after that: database, `config.php`, and Moodle's phpunit/behat init s
 ## Principles
 
 - **Self-contained.** Ship a pinned static `mudev` binary in the runner image and check the
-  plugin/recipe YAML into the CI workspace — no dependency on `/opt/mdl-*`.
+  plugin/recipe YAML into the CI workspace — no dependency on the developer
+  catalogues under `/srv/extra`.
 - **Non-interactive.** Every command is env/flag driven; no prompts; meaningful exit codes.
 - **Use a recipe whose URLs suit CI.** mudev has no authentication settings — it hands each URL
   to git untouched — so a CI recipe names `https://…` remotes and the public MuTMS repositories

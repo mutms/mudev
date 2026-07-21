@@ -1,14 +1,14 @@
 # Plugin metadata format
 
 Plugin definitions live in the plugins directory (`MUDEV_PLUGINS_DIRECTORY`, default
-`/opt/mdl-plugins`), one YAML file per plugin, grouped by vendor. The file path derives from
+`/srv/extra/mdl-plugins`), one YAML file per plugin, grouped by vendor. The file path derives from
 the identifier:
 
 ```
 <plugins-dir>/<vendor>/<package>.yaml
 ```
 
-e.g. identifier `mutms/tool_mulib` → `/opt/mdl-plugins/mutms/tool_mulib.yaml`.
+e.g. identifier `mutms/tool_mulib` → `/srv/extra/mdl-plugins/mutms/tool_mulib.yaml`.
 
 This is a **public, tool-neutral catalogue**: it holds generic, stable facts about a plugin.
 It is consumed by mudev (git assembly), by a future composer-based site assembler, and

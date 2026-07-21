@@ -3,7 +3,7 @@
 A recipe is a complete Moodle site definition: core (at a branch/tag/commit) and a selection of
 plugins. The core it names may already be patched — MuTMS points `base.source` at a
 pre-merged `patch/mutms/*` branch — so mudev merges nothing itself. Recipes live in the recipes directory
-(`MUDEV_RECIPES_DIRECTORY`, default `/opt/mdl-recipes`), grouped by vendor like plugins:
+(`MUDEV_RECIPES_DIRECTORY`, default `/srv/extra/mdl-recipes`), grouped by vendor like plugins:
 
 ```
 <recipes-dir>/<vendor>/<stream>/<version>.yaml   →  identifier  vendor/stream/version

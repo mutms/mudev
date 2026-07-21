@@ -28,10 +28,24 @@ const (
 	EnvRecipesDir = "MUDEV_RECIPES_DIRECTORY"
 )
 
-// Built-in defaults — the shared /opt layout used on a developer machine.
+// Built-in defaults — mudev's canonical catalogue layout, in any environment.
+//
+// /srv/extra is not an mpd path mudev borrows: it is where the catalogues live
+// wherever mudev runs, and a host that wants zero-config mudev creates it (the
+// mdl-demo fat container does the same). Hence hardcoded defaults rather than
+// values injected through MUDEV_*_DIRECTORY by whoever provisions the machine.
+//
+// It suits mpd, mudev's home, particularly well: /srv is the data volume, so
+// the catalogues are visible from the VM and from every runtime container at
+// the same path, and they outlive any single runtime — which /opt inside a
+// container does not. That matters most for dev-recipes, hand-maintained and
+// with nowhere to be pushed.
+//
+// The catalogues remain siblings of each other, so a recipe's relative path to
+// the plugin catalogue ("../../../mdl-plugins") resolves exactly as before.
 const (
-	DefaultPluginsDir = "/opt/mdl-plugins"
-	DefaultRecipesDir = "/opt/mdl-recipes"
+	DefaultPluginsDir = "/srv/extra/mdl-plugins"
+	DefaultRecipesDir = "/srv/extra/mdl-recipes"
 )
 
 // LiveRecipeFile is the name of the single mudev-managed state file written at

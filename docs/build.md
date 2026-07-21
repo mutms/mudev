@@ -10,7 +10,7 @@ make build        # → ./bin/mudev
 ```
 
 Keep the source at `/opt/mudev`. Fixing a bug = edit + `make build`. With the standard
-`/opt` layout, the binary finds `/opt/mdl-plugins` and `/opt/mdl-recipes` with no config.
+layout, the binary finds `/srv/extra/mdl-plugins` and `/srv/extra/mdl-recipes` with no config.
 
 Plain `go build ./...` / `go test ./...` also work.
 

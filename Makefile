@@ -2,6 +2,20 @@ BINARY      := mudev
 PKG         := github.com/mutms/mudev/cmd/mudev
 INSTALL_DIR := $(HOME)/.local/bin
 
+# Build with the Go that Debian Trixie ships (golang-go, currently 1.24.x)
+# and nothing else.
+#
+# Go's default GOTOOLCHAIN=auto silently downloads a whole toolchain —
+# 210 MB — when go.mod, or any dependency's go.mod, names a newer version
+# than the installed one. That happens per machine, at build time, over
+# the network, with no warning. `local` turns it into an immediate,
+# legible build failure instead.
+#
+# If you hit that failure: lower the `go` directive in go.mod, or pick a
+# dependency version whose own go.mod fits — do not raise the floor above
+# what Trixie packages. (Same rule, same wording, as mpd's Makefile.)
+export GOTOOLCHAIN = local
+
 .PHONY: build install uninstall build-static test vet fmt fmt-check tidy clean
 
 # Apply canonical Go formatting.

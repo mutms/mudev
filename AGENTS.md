@@ -180,8 +180,11 @@ uniformly testable and consistent, and makes a future mpd→Go port map onto the
 - Old PHP tool: `/srv/projects/old_mudev/` (`lib/functions.php`, `lib/plugins.php` show the
   original clone/fetch/pull/push/backup + release/tagging operations). The release flow is the
   part not yet carried over.
-- `mpd` provisions Go automatically for the dev container (Debian 13 trixie: `golang-go`,
-  Go 1.24); `make` is absent from the base trixie image and is needed for `make build`.
+- mudev is built **on the mpd VM**, not inside a runtime container: `mpd --vm-setup`
+  clones this repo to `/opt/mudev` and runs `make install`. The VM has `golang-go`
+  (Debian 13 trixie, Go 1.24) and `make`; runtime containers deliberately have neither,
+  and get `/opt/mudev` bind-mounted read-only instead, so every runtime shares the one
+  binary. Rebuild after editing: `cd /opt/mudev && make install`.
 
 ## Code style
 

@@ -20,7 +20,7 @@ func TestRemoteURLsAreStoredUntouched(t *testing.T) {
 	urls := []string{
 		"git@github.com:mutms/moodle-tool_mulib.git",
 		"https://github.com/mutms/moodle-tool_mulib.git",
-		"git@192.168.1.100:mutms/patches.git",
+		"git@10.1.10.100:mutms/patches.git",
 		"ssh://git@example.org/plugin.git",
 		"file:///srv/git/plugin.git",
 	}

@@ -21,6 +21,7 @@ func newRecipeCmd(s *settings) *cobra.Command {
 	}
 
 	cmd.AddCommand(newRecipeInitCmd(s))
+	cmd.AddCommand(newRecipeUpdateCmd(s))
 	cmd.AddCommand(newRecipeAddCmd(s))
 	cmd.AddCommand(newRecipePruneCmd())
 	cmd.AddCommand(newRecipeSetCmd())
@@ -96,6 +97,44 @@ func newRecipeInitCmd(s *settings) *cobra.Command {
 				Config: s.cfg,
 				Root:   root,
 				Out:    cmd.OutOrStdout(),
+			})
+		},
+	}
+
+	return cmd
+}
+
+// newRecipeUpdateCmd builds `mudev recipe update <relpath>`.
+func newRecipeUpdateCmd(s *settings) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update <relpath>",
+		Short: "Fold one checkout's current state into .mudev.json",
+		Long: "Bring one checkout's entry in .mudev.json up to date with what is on disk.\n\n" +
+			"<relpath> is the checkout's path as `mudev list` prints it — a path relative to\n" +
+			"the workspace root, or \".\" for Moodle core. This is the per-checkout companion to\n" +
+			"`mudev recipe init`: after the initial bulk reconstruction, run it for the one\n" +
+			"plugin you just cloned into the tree, or the one whose branch or remotes you\n" +
+			"changed.\n\n" +
+			"A checkout the record does not know yet is adopted — identified <owner>/<component>\n" +
+			"from its origin remote and its own version.php, and hidden from its containing\n" +
+			"repository. A checkout it already records is refreshed: only the git identity\n" +
+			"(remotes, ref, localbranch) is rewritten to match, so a name you fixed by hand\n" +
+			"survives, and a checkout you moved onto a new branch is recorded where it now is.\n\n" +
+			"It touches no working tree. Removing a plugin stays `recipe prune`'s job — update\n" +
+			"never drops an entry.",
+		Args: cobra.ExactArgs(1),
+
+		RunE: func(cmd *cobra.Command, args []string) error {
+			root, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+
+			return workspace.Update(cmd.Context(), workspace.UpdateOptions{
+				Config:  s.cfg,
+				Root:    root,
+				Relpath: args[0],
+				Out:     cmd.OutOrStdout(),
 			})
 		},
 	}

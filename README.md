@@ -21,6 +21,7 @@ command each for the things you would otherwise run twenty times by hand.
 | `fetch`                         | every remote of every checkout, in the recipe's order             |
 | `pull`                          | `git pull --ff-only` everywhere; stops at a divergence            |
 | `recipe init`                   | reconstruct `.mudev.json` from the checkouts already in the tree  |
+| `recipe update <relpath>`       | fold one checkout's current state into `.mudev.json`              |
 | `recipe add <plugin>`           | check a plugin out and record it                                  |
 | `recipe prune`                  | forget plugins whose directories are gone                         |
 | `recipe set <key> <value>`      | name the workspace                                                |
@@ -193,6 +194,23 @@ tree whose code comes from that forge. Those names are mudev's own state keys; a
 afterwards with `recipe set` or by editing the file. A checkout with no `origin` remote is
 reported and left out rather than recorded under a guess, and init refuses to overwrite an
 existing `.mudev.json`.
+
+Once a tree is initialised, you keep it current one checkout at a time with `recipe update`
+rather than by re-running init:
+
+```sh
+mudev recipe update public/mod/customcert   # a plugin you just cloned in, or moved
+mudev recipe update .                        # core
+```
+
+The `<relpath>` is the path as `mudev list` prints it (`.` is core). A checkout the record does
+not know yet is **adopted** — named and excluded the same way init does one. A checkout it
+already records is **refreshed**: only the git identity (remotes, ref, localbranch) is rewritten
+to match, so a name you fixed by hand survives and a checkout you moved onto a new branch is
+recorded where it now is — which is how a strayed `≠` row in `mudev list` becomes the baseline
+again. It changes no working tree, and it never drops an entry: a plugin you deleted is still
+`recipe prune`'s to reconcile. (To re-snapshot the *whole* tree at once, delete `.mudev.json` and
+run `recipe init` again.)
 
 ## Exporting what you built
 

@@ -318,6 +318,30 @@ reconstruct from scratch). It reads no plugin catalogue — everything comes fro
 and so records no `requirements` or `based_on_recipe`; it is a snapshot of the tree, not an
 adaptation of a source recipe.
 
+## Update flow (`mudev recipe update <relpath>`) — one checkout at a time
+
+`init` reconstructs a whole tree, and **refuses if a live recipe already exists**. `update` is the
+per-checkout follow-up for a workspace that is already initialised: it folds the current state of
+one checkout into the record. `<relpath>` is the path as `mudev list` prints it — a tree-relative
+path, or `.` for core — resolved to an entry through the same `strippublic` mapping the listing
+uses. It reads the same on-disk facts as init and, like init, changes no working tree.
+
+- **Adopt** — the checkout is on disk but not in the record (the `?` a listing flags). It is
+  identified `<owner>/<component>`, flattened, excluded from its containing repository and
+  recorded, exactly as init would have done that one row.
+- **Refresh** — the checkout is already recorded. Only its **git identity** is rewritten —
+  `source.git.remotes`, `source.git.ref`, `localbranch` — from what git now reports; the entry's
+  `name` and every other field are preserved (a name edited by hand after init survives, and any
+  catalogue field carried in survives). Re-recording a strayed checkout this way makes its current
+  branch the baseline `status` compares against — the write-side inverse of the `≠` that a listing
+  shows.
+
+It **never removes** an entry: a recorded checkout whose directory is gone is reported and left
+for `recipe prune`, keeping the same split that makes prune safe (you delete the code, mudev
+reconciles the record). A recorded name is never re-derived on refresh, so update cannot silently
+rename an entry. There is deliberately no bulk form — to re-snapshot the whole tree, delete
+`.mudev.json` and run `recipe init` again.
+
 ## Attribution in the live recipe
 
 The live recipe (`.mudev.json`) is an *adaptation* of the source recipe, so CC BY

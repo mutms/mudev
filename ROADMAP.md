@@ -16,6 +16,7 @@ mudev assembles a Moodle code tree from a recipe and manages the checkouts in it
 | `fetch`                         | every remote of every checkout, in the recipe's order             |
 | `pull`                          | `git pull --ff-only` everywhere; stops at a divergence            |
 | `recipe init`                   | reconstruct `.mudev.json` from the checkouts already in a tree    |
+| `recipe update <relpath>`       | fold one checkout's current state (adopt or refresh) into the record |
 | `recipe add <plugin>`           | check a plugin out and record it                                  |
 | `recipe prune`                  | forget plugins whose directories are gone                         |
 | `recipe set <key> <value>`      | name the workspace: `name`, `description`, `contributed_by`       |
@@ -59,10 +60,11 @@ flavour is diagnosed as "wrong binary" rather than "broken recipe".
 - `mudev recipe diff` — compare the workspace against the recipe it was assembled from, in both
   directions (the source moved on ↔ plugins were added locally). A preview for a future
   `switch`/`upgrade` between recipe versions.
-- Adopt a *single* unmanaged checkout into an existing workspace: `list` already flags one with
-  `?`, but `recipe add` still takes its remotes from the catalogue rather than reading the
-  existing checkout. (`recipe init` already adopts a *whole* tree from disk; this is the
-  one-checkout-into-a-live-workspace case — it would read that checkout the way init does.)
+- `recipe add` reading an *existing* checkout rather than the catalogue: `recipe update <relpath>`
+  now adopts an unmanaged checkout (the `?` a listing flags) by reading its own remotes and
+  component, and `recipe init` does a whole tree at once — so the remaining gap is only that
+  `recipe add`, which *creates* a checkout from the catalogue, still would not reuse one already
+  on disk. Largely covered; kept as a note.
 - Detect unmerged local branches (`list` currently flags only HEAD ≠ recorded).
 - Gather `list` status concurrently — one checkout costs about five git processes.
 - `backup` — push branches and tags to a mirror remote.

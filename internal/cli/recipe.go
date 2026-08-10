@@ -20,9 +20,85 @@ func newRecipeCmd(s *settings) *cobra.Command {
 			"differ from the recipe it was assembled from.",
 	}
 
+	cmd.AddCommand(newRecipeInitCmd(s))
 	cmd.AddCommand(newRecipeAddCmd(s))
 	cmd.AddCommand(newRecipePruneCmd())
 	cmd.AddCommand(newRecipeSetCmd())
+	cmd.AddCommand(newRecipeExportCmd())
+
+	return cmd
+}
+
+// newRecipeExportCmd builds `mudev recipe export`.
+func newRecipeExportCmd() *cobra.Command {
+	var file string
+
+	cmd := &cobra.Command{
+		Use:   "export",
+		Short: "Write the current workspace's recipe out as YAML",
+		Long: "Write the current workspace's recipe out as YAML.\n\n" +
+			"It prints to standard output by default, so it pipes and diffs; --file writes it\n" +
+			"to a recipe file instead, which must be named .yaml or .yml.\n\n" +
+			"What comes out is .mudev.json rendered as a recipe: every plugin flattened, with\n" +
+			"no dependency on a plugin catalogue, so it describes the same tree wherever it is\n" +
+			"taken. It is what the workspace was assembled to be — for what its checkouts are\n" +
+			"doing right now, use `mudev list`.",
+		Args: cobra.NoArgs,
+
+		RunE: func(cmd *cobra.Command, args []string) error {
+			root, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+
+			return workspace.Export(workspace.ExportOptions{
+				Root: root,
+				File: file,
+				Out:  cmd.OutOrStdout(),
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&file, "file", "", "write to this recipe file (.yaml or .yml) instead of standard output")
+
+	return cmd
+}
+
+// newRecipeInitCmd builds `mudev recipe init`.
+func newRecipeInitCmd(s *settings) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Reconstruct .mudev.json from the checkouts already in the tree",
+		Long: "Reconstruct the live recipe (.mudev.json) from the git checkouts already in the\n" +
+			"current directory, so a tree assembled by hand or by the old tool becomes a\n" +
+			"workspace mudev can manage.\n\n" +
+			"It is the reverse of `mudev clone`, and it changes no working tree: it asks git\n" +
+			"what each checkout is — its remotes, its branch and tracking ref — and reads each\n" +
+			"plugin's version.php for the frankenstyle component that names it. Core at the\n" +
+			"root becomes the base block; every other checkout becomes a flattened plugin\n" +
+			"entry, identified as <remote-owner>/<component> (e.g. mutms/tool_mulib, or\n" +
+			"acme/mod_thing for a private forge). The result is a self-contained recipe, the\n" +
+			"same shape clone writes, so `list`, `status`, `fetch`, `pull` and `recipe export`\n" +
+			"work against it from then on.\n\n" +
+			"Names are mudev's own state keys — adjust them afterwards with `recipe set` or by\n" +
+			"editing the file. A checkout with no origin remote, or none that yields a valid\n" +
+			"identifier, is reported and left out rather than recorded under a guess. It\n" +
+			"refuses to overwrite an existing .mudev.json.",
+		Args: cobra.NoArgs,
+
+		RunE: func(cmd *cobra.Command, args []string) error {
+			root, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+
+			return workspace.Init(cmd.Context(), workspace.InitOptions{
+				Config: s.cfg,
+				Root:   root,
+				Out:    cmd.OutOrStdout(),
+			})
+		},
+	}
 
 	return cmd
 }
@@ -39,7 +115,7 @@ func newRecipeSetCmd() *cobra.Command {
 			"  mudev recipe set description \"programs + certifications, patched core\"\n" +
 			"  mudev recipe set description \"\"\n\n" +
 			"A workspace starts out describing the recipe it was cloned from, which stops being\n" +
-			"true as soon as you add or prune plugins — `mudev export` would otherwise carry a\n" +
+			"true as soon as you add or prune plugins — `mudev recipe export` would otherwise carry a\n" +
 			"name belonging to something else.\n\n" +
 			"Settable: name, description, contributed_by. Everything else in the recipe is a\n" +
 			"record of what mudev actually did, and changes by cloning, adding and pruning.",

@@ -27,11 +27,35 @@ func (v Version) Empty() bool {
 // assignments, and core's plain $version/$release. Both are matched so that
 // the core row of a listing is as informative as a plugin row.
 var (
-	pluginVersionPattern = regexp.MustCompile(`\$plugin->version\s*=\s*(\d+(?:\.\d+)?)`)
-	pluginReleasePattern = regexp.MustCompile(`\$plugin->release\s*=\s*'([^']*)'`)
-	coreVersionPattern   = regexp.MustCompile(`(?m)^\s*\$version\s*=\s*(\d+(?:\.\d+)?)`)
-	coreReleasePattern   = regexp.MustCompile(`(?m)^\s*\$release\s*=\s*'([^']*)'`)
+	pluginVersionPattern   = regexp.MustCompile(`\$plugin->version\s*=\s*(\d+(?:\.\d+)?)`)
+	pluginReleasePattern   = regexp.MustCompile(`\$plugin->release\s*=\s*'([^']*)'`)
+	pluginComponentPattern = regexp.MustCompile(`\$plugin->component\s*=\s*['"]([a-z][a-z0-9_]*)['"]`)
+	coreVersionPattern     = regexp.MustCompile(`(?m)^\s*\$version\s*=\s*(\d+(?:\.\d+)?)`)
+	coreReleasePattern     = regexp.MustCompile(`(?m)^\s*\$release\s*=\s*'([^']*)'`)
 )
+
+// Component reads a plugin's frankenstyle component name from its version.php,
+// e.g. "mod_customcert" or "tool_certificate".
+//
+// It is the plugin's own authoritative identity — Moodle keys everything on it —
+// so `mudev recipe init` uses it as the package half of a reconstructed
+// identifier rather than guessing from the directory name. A directory with no
+// version.php, or one that declares no component (core has $version, not
+// $plugin->component), yields an empty string and no error: the caller falls
+// back to another source of the name.
+func Component(dir string) (string, error) {
+	content, err := readVersionFile(dir)
+	if err != nil {
+		return "", err
+	}
+
+	match := pluginComponentPattern.FindStringSubmatch(content)
+	if match == nil {
+		return "", nil
+	}
+
+	return match[1], nil
+}
 
 // ReadVersion reads the version.php of a plugin — or of a Moodle code root —
 // and returns what it declares. A directory without one yields an empty

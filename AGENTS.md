@@ -64,10 +64,10 @@ static binary with plugin/recipe YAML checked into the CI workspace.
 
 ## Configuration (env → flag → default)
 
-| Env var                    | Flag             | Default            |
-|----------------------------|------------------|--------------------|
-| `MUDEV_PLUGINS_DIRECTORY`  | `--plugins-dir`  | `/srv/extra/mdl-plugins` |
-| `MUDEV_RECIPES_DIRECTORY`  | `--recipes-dir`  | `/srv/extra/mdl-recipes` |
+| Env var                   | Flag            | Default                  |
+|---------------------------|-----------------|--------------------------|
+| `MUDEV_PLUGINS_DIRECTORY` | `--plugins-dir` | `/srv/extra/mdl-plugins` |
+| `MUDEV_RECIPES_DIRECTORY` | `--recipes-dir` | `/srv/extra/mdl-recipes` |
 
 That is the whole of it. **mudev has no git authentication configuration, and adding some would
 be a regression** — no URL rewriting, no token injection. A recipe names the URL it means

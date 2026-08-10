@@ -46,7 +46,6 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newFetchCmd(s))
 	cmd.AddCommand(newPullCmd(s))
 	cmd.AddCommand(newRecipeCmd(s))
-	cmd.AddCommand(newExportCmd())
 	cmd.AddCommand(newStatusCmd(s))
 
 	return cmd

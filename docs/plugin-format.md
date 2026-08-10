@@ -41,18 +41,18 @@ requirements:
 
 ## Fields
 
-| Field         | Req | Meaning                                                                       |
-|---------------|-----|-------------------------------------------------------------------------------|
-| `name`        | yes | Composer-style `vendor/package` identifier and the map key. See Identity.      |
-| `title`       | yes | Human display name for a catalogue UI (`Programs`, not the slug `tool_muprog`). English fallback; localized names come from the plugin's lang packs. See Title. |
-| `description` | no  | Short one-line human summary (the composer `description`). Long-form copy is the repo README, not stored here. |
-| `relpath`     | yes | Explicit install path relative to the Moodle root, newest (`public/`) layout. See Relpath. |
-| `source`      | no  | Acquisition methods keyed by kind (`git` + `composer` today; `zip` reserved) — kinds can coexist. `git.remotes` is a name → URL map (`origin` clone remote; `upstream` forks, `backup` mirror); `composer` is the Packagist package name. Optional overall (advertise-only); clone fails only if git is actually needed. |
-| `source.composer` | no | Packagist package name; presence = published on Packagist. See Composer. |
-| `homepage`    | no  | Project homepage.                                                            |
-| `license`     | no  | SPDX id, e.g. `GPL-3.0-or-later`.                                             |
-| `contributed_by` | no | Attribution party (name or list). The catalogue is CC BY 4.0, so reusers must retain this credit. |
-| `requirements`| yes | Per-git-branch support + dependencies, keyed by git branch. Each entry has `mdlbranches` (the Moodle `$branch` codes that branch serves) and optional `plugins` (dependency identifiers). Merges the old `supported` + `require`. See Branch resolution. |
+| Field             | Req | Meaning                                                                                                                                                                                                                                                                                                                  |
+|-------------------|-----|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`            | yes | Composer-style `vendor/package` identifier and the map key. See Identity.                                                                                                                                                                                                                                                |
+| `title`           | yes | Human display name for a catalogue UI (`Programs`, not the slug `tool_muprog`). English fallback; localized names come from the plugin's lang packs. See Title.                                                                                                                                                          |
+| `description`     | no  | Short one-line human summary (the composer `description`). Long-form copy is the repo README, not stored here.                                                                                                                                                                                                           |
+| `relpath`         | yes | Explicit install path relative to the Moodle root, newest (`public/`) layout. See Relpath.                                                                                                                                                                                                                               |
+| `source`          | no  | Acquisition methods keyed by kind (`git` + `composer` today; `zip` reserved) — kinds can coexist. `git.remotes` is a name → URL map (`origin` clone remote; `upstream` forks, `backup` mirror); `composer` is the Packagist package name. Optional overall (advertise-only); clone fails only if git is actually needed. |
+| `source.composer` | no  | Packagist package name; presence = published on Packagist. See Composer.                                                                                                                                                                                                                                                 |
+| `homepage`        | no  | Project homepage.                                                                                                                                                                                                                                                                                                        |
+| `license`         | no  | SPDX id, e.g. `GPL-3.0-or-later`.                                                                                                                                                                                                                                                                                        |
+| `contributed_by`  | no  | Attribution party (name or list). The catalogue is CC BY 4.0, so reusers must retain this credit.                                                                                                                                                                                                                        |
+| `requirements`    | yes | Per-git-branch support + dependencies, keyed by git branch. Each entry has `mdlbranches` (the Moodle `$branch` codes that branch serves) and optional `plugins` (dependency identifiers). Merges the old `supported` + `require`. See Branch resolution.                                                                 |
 
 The schema is intentionally **open** (`additionalProperties: true`) so a catalogue website can add
 presentation metadata without breaking mudev. mudev only acts on the functional fields (`name`,

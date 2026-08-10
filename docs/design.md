@@ -187,4 +187,7 @@ The old PHP tool (`lib/functions.php`) provided list, clone, fetch, pull, push a
 the release flow — set version/release, tag, tag-push, tag-delete, changelog. The git-facing
 verbs are implemented here; the release flow is the main piece still to come (see
 [ROADMAP.md](../ROADMAP.md)). The recipe/live-recipe layer — a site as a declared composition,
-with `add`, `prune` and `export` on top — is new.
+with `recipe init`/`add`/`prune`/`export` on top — is new. `recipe init` in particular has no
+lineage: the old tool always built the tree itself, so there was never a hand-assembled tree to
+adopt; reconstructing a live recipe from existing checkouts is a new capability the declared-
+composition model makes possible.

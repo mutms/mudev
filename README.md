@@ -13,17 +13,18 @@ command each for the things you would otherwise run twenty times by hand.
 
 ## Commands
 
-| Command                      | What it does                                                     |
-|------------------------------|------------------------------------------------------------------|
-| `clone <recipe>`             | assemble a tree into the current directory; idempotent, resumable |
-| `list`                       | one line per checkout — state, branch, version, release           |
-| `status [git args…]`         | git status, only where there is something to report               |
-| `fetch`                      | every remote of every checkout, in the recipe's order             |
-| `pull`                       | `git pull --ff-only` everywhere; stops at a divergence            |
-| `recipe add <plugin>`        | check a plugin out and record it                                  |
-| `recipe prune`               | forget plugins whose directories are gone                         |
-| `recipe set <key> <value>`   | name the workspace                                                |
-| `export [--file x.yaml]`     | render the workspace as a portable recipe                         |
+| Command                         | What it does                                                      |
+|---------------------------------|-------------------------------------------------------------------|
+| `clone <recipe>`                | assemble a tree into the current directory; idempotent, resumable |
+| `list`                          | one line per checkout — state, branch, version, release           |
+| `status [git args…]`            | git status, only where there is something to report               |
+| `fetch`                         | every remote of every checkout, in the recipe's order             |
+| `pull`                          | `git pull --ff-only` everywhere; stops at a divergence            |
+| `recipe init`                   | reconstruct `.mudev.json` from the checkouts already in the tree  |
+| `recipe add <plugin>`           | check a plugin out and record it                                  |
+| `recipe prune`                  | forget plugins whose directories are gone                         |
+| `recipe set <key> <value>`      | name the workspace                                                |
+| `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
 
 ## Quick start
 
@@ -171,14 +172,36 @@ One key and one value per call, the way `git config user.name "…"` works. Sett
 did and changes by cloning, adding and pruning — and `based_on_recipe` is provenance, crediting
 the recipe this workspace was adapted from, so it is deliberately not editable.
 
+## Adopting a tree you already have
+
+A tree assembled by hand — or by the old PHP tool — has the checkouts but no `.mudev.json`, so
+mudev does not yet know it as a workspace. `recipe init` reconstructs the live recipe from what
+is on disk, and from then on `list`, `status`, `fetch`, `pull` and `recipe export` all work:
+
+```sh
+cd /srv/projects/msk52
+mudev recipe init
+```
+
+It is the reverse of `clone`, and it changes no working tree. It asks git what each checkout is —
+its remotes, its branch and tracking ref — and reads each plugin's `version.php` for the
+frankenstyle component that names it. Core at the root becomes the `base` block; every other
+checkout becomes a flattened plugin entry, identified as `<remote-owner>/<component>` — so a
+checkout of `git@github.com:mutms/moodle-tool_mulib.git` is `mutms/tool_mulib`, and one from a
+private forge (`git@forge.example:acme/mod_thing.git`) is `acme/mod_thing`, the honest name for a
+tree whose code comes from that forge. Those names are mudev's own state keys; adjust them
+afterwards with `recipe set` or by editing the file. A checkout with no `origin` remote is
+reported and left out rather than recorded under a guess, and init refuses to overwrite an
+existing `.mudev.json`.
+
 ## Exporting what you built
 
 ```sh
-mudev export                                  # to stdout, so it pipes and diffs
-mudev export --file mysite-5.2.yaml           # .yaml or .yml required
+mudev recipe export                           # to stdout, so it pipes and diffs
+mudev recipe export --file mysite-5.2.yaml    # .yaml or .yml required
 ```
 
-`export` renders `.mudev.json` as recipe YAML, with the schema header that makes an editor
+`recipe export` renders `.mudev.json` as recipe YAML, with the schema header that makes an editor
 validate and complete it. Every plugin in it is flattened, so it needs no plugin catalogue in
 reach and `mudev clone` of the exported file assembles the same tree anywhere — that round trip
 is what the command promises, and what its tests check.
@@ -199,7 +222,7 @@ this one. Both are CC BY 4.0: reusing an entry means keeping its `contributed_by
   `mutms/full/5.2.1.01`.
 
 A recipe does not have to come from a catalogue at all: `mudev clone ./mysite.yaml` takes a
-self-contained file, which is what `mudev export` produces.
+self-contained file, which is what `mudev recipe export` produces.
 
 ## Docs
 

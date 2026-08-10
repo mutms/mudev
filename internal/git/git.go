@@ -263,6 +263,20 @@ func (c *Client) Head(ctx context.Context, dir string) (string, error) {
 	return out, nil
 }
 
+// CommitSHA returns the full commit hash HEAD points at.
+//
+// `mudev recipe init` records it as the ref of a detached checkout that sits on
+// no tag — a commit pin is the only honest thing to write down for a tree that
+// is not on a branch and carries no tag to name it by.
+func (c *Client) CommitSHA(ctx context.Context, dir string) (string, error) {
+	out, err := c.capture(ctx, dir, "rev-parse", "HEAD")
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(out), nil
+}
+
 // SubmoduleUpdate initialises and updates any submodules a plugin carries.
 // Site-level composition is mudev's job, but submodules *inside* a plugin are
 // that plugin's own business and must still be materialised.

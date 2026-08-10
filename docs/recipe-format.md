@@ -54,7 +54,9 @@ a fast default-branch lookup so `mudev recipe add <plugin>` can resolve a newly 
 (via that plugin's `requirements` block) without re-deriving the target. It is **mudev-managed state**
 (JSON, composer.lock-style): you change it by running mudev, not by hand-editing. `extra` namespaces
 let mudev (and other tools) track per-checkout state in that one file, so no `.mudev/` directory is
-needed; `mudev export` emits a clean YAML source recipe from it for sharing.
+needed; `mudev recipe export` emits a clean YAML source recipe from it for sharing. A live recipe
+is normally written by `clone`, but `mudev recipe init` also **reconstructs one from the checkouts
+already in a tree** (see below).
 
 ## Example
 
@@ -85,19 +87,19 @@ plugins:
 
 ## Fields
 
-| Field                | Req | Meaning                                                              |
-|----------------------|-----|----------------------------------------------------------------------|
-| `name`               | no  | Human label.                                                         |
-| `contributed_by`     | no  | Attribution party (name or list); also asserts recipe authorship. CC BY 4.0 → retained on reuse. In a live recipe, this is the *project owner*. |
-| `based_on_recipe`    | no  | Live-recipe only: what `clone` was given — a catalogue identifier *or* a recipe file path (provenance); also the CC BY credit to a catalogue source (see below). |
-| `catalog`            | no  | Where bare-name references resolve; path relative to the file, or absolute. Defaults to `MUDEV_PLUGINS_DIRECTORY`. |
-| `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.release` = release flavour. See below. |
-| `base.mdlbranch`     | yes | Moodle `$branch` code (e.g. `502`). Drives plugin-branch resolution. |
-| `base.source`        | yes | How to acquire Moodle core — same shape as a plugin `source` (kinds by key; see below). Normally `git`: `git.remotes.origin` is the clone remote (name → URL) and `git.ref` is what to check out. |
-| `base.localbranch`   | no  | Local branch name to create from a branch `source.git.ref` (default = the remote branch name). Lives *outside* `source`. See Refs. |
-| `base.strippublic`   | no  | Strip the leading `public/` from every plugin `relpath` (pre-5.1 Moodle: 4.5, 5.0). |
+| Field                | Req | Meaning                                                                                                                                                                                                                      |
+|----------------------|-----|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`               | no  | Human label.                                                                                                                                                                                                                 |
+| `contributed_by`     | no  | Attribution party (name or list); also asserts recipe authorship. CC BY 4.0 → retained on reuse. In a live recipe, this is the *project owner*.                                                                              |
+| `based_on_recipe`    | no  | Live-recipe only: what `clone` was given — a catalogue identifier *or* a recipe file path (provenance); also the CC BY credit to a catalogue source (see below).                                                             |
+| `catalog`            | no  | Where bare-name references resolve; path relative to the file, or absolute. Defaults to `MUDEV_PLUGINS_DIRECTORY`.                                                                                                           |
+| `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.release` = release flavour. See below.                                                                                                        |
+| `base.mdlbranch`     | yes | Moodle `$branch` code (e.g. `502`). Drives plugin-branch resolution.                                                                                                                                                         |
+| `base.source`        | yes | How to acquire Moodle core — same shape as a plugin `source` (kinds by key; see below). Normally `git`: `git.remotes.origin` is the clone remote (name → URL) and `git.ref` is what to check out.                            |
+| `base.localbranch`   | no  | Local branch name to create from a branch `source.git.ref` (default = the remote branch name). Lives *outside* `source`. See Refs.                                                                                           |
+| `base.strippublic`   | no  | Strip the leading `public/` from every plugin `relpath` (pre-5.1 Moodle: 4.5, 5.0).                                                                                                                                          |
 | `base.patches`       | no  | List of `{ repo, ref }` to merge over `ref`, in order. **Not implemented** — a recipe using it is rejected with a clear error. MuTMS ships a pre-merged `patch/mutms/*` core branch instead, so point `base.source` at that. |
-| `plugins`            | yes | List of plugin entries; each is a **string** or an **object** (below). |
+| `plugins`            | yes | List of plugin entries; each is a **string** or an **object** (below).                                                                                                                                                       |
 
 ## Plugin entries — reference or inline
 
@@ -282,6 +284,39 @@ Then:
    inline** (full catalogue merge — relpath/requirements/etc. — with `source` narrowed to the resolved
    `git` kind and `source.git.ref` set to the checked-out ref, plus `extra`), so it carries no
    `catalog` and needs no plugins directory thereafter.
+
+## Init flow (`mudev recipe init`) — reconstructing the live recipe from a tree
+
+`init` is the reverse of `clone`: where clone reads a recipe and produces checkouts, init reads
+the checkouts and produces the recipe. It is for a tree that already holds the code — assembled by
+hand, or by the old PHP tool — but has no `.mudev.json`, so mudev does not yet know it as a
+workspace. It **changes no working tree**; it only reads git state and writes the record.
+
+1. Read core at the root: try `public/version.php` (5.1+), then `version.php` (older, which sets
+   `strippublic`), for the `$branch` code → `base.mdlbranch`. Read core's remotes and its branch
+   (and tracking ref) → `base.source.git`, with `base.localbranch` when the local branch differs
+   from the ref's branch part. A root that is not a Moodle code tree is refused.
+2. Walk the tree for every other git checkout (the same enumeration `list` uses).
+3. Per checkout: read its remotes and, from its own `version.php`, its **frankenstyle component**.
+   The identifier is reconstructed as **`<remote-owner>/<component>`** — the owner segment of the
+   `origin` URL, and the component. A checkout of `git@github.com:mutms/moodle-tool_mulib.git`
+   with component `tool_mulib` becomes `mutms/tool_mulib` (the catalogue identifier); one from a
+   private forge (`git@forge.example:acme/mod_thing.git`) becomes `acme/mod_thing`. Where the
+   component is unreadable, the repository name (minus a `moodle-` prefix) stands in; where there
+   is no `origin` at all, the checkout is **reported and left out** rather than named on a guess.
+4. Record the ref the way clone does — a branch by its upstream (`origin/…`), a detached checkout
+   by the tag at its HEAD, or, failing both, by its commit. `relpath` is the checkout's path put
+   back into the newest (`public/`) layout when the tree is `strippublic`.
+5. Write `.mudev.json` and add the same excludes clone leaves (the live recipe, and each nested
+   checkout hidden from its containing repository).
+
+The result is a fully flattened, self-contained live recipe — the same shape clone writes — so
+`recipe export` and every fan-out command work against it. The reconstructed names are **mudev's
+own state keys**, not a claim about any catalogue: edit them with `recipe set` or in the file. To
+keep that state safe, init **refuses to overwrite an existing `.mudev.json`** (remove it first to
+reconstruct from scratch). It reads no plugin catalogue — everything comes from the checkouts —
+and so records no `requirements` or `based_on_recipe`; it is a snapshot of the tree, not an
+adaptation of a source recipe.
 
 ## Attribution in the live recipe
 

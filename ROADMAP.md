@@ -8,17 +8,18 @@ What mudev does today, and what is planned. Design rationale for what already ex
 
 mudev assembles a Moodle code tree from a recipe and manages the checkouts in it:
 
-| Command                      | What it does                                                     |
-|------------------------------|------------------------------------------------------------------|
-| `clone <recipe>`             | assemble a tree into the current directory; idempotent, resumable |
-| `list`                       | one line per checkout — state, branch, version, release           |
-| `status [git args…]`         | git status, only where there is something to report               |
-| `fetch`                      | every remote of every checkout, in the recipe's order             |
-| `pull`                       | `git pull --ff-only` everywhere; stops at a divergence            |
-| `recipe add <plugin>`        | check a plugin out and record it                                  |
-| `recipe prune`               | forget plugins whose directories are gone                         |
-| `recipe set <key> <value>`   | name the workspace: `name`, `description`, `contributed_by`       |
-| `export [--file x.yaml]`     | render the workspace as a portable recipe                         |
+| Command                         | What it does                                                      |
+|---------------------------------|-------------------------------------------------------------------|
+| `clone <recipe>`                | assemble a tree into the current directory; idempotent, resumable |
+| `list`                          | one line per checkout — state, branch, version, release           |
+| `status [git args…]`            | git status, only where there is something to report               |
+| `fetch`                         | every remote of every checkout, in the recipe's order             |
+| `pull`                          | `git pull --ff-only` everywhere; stops at a divergence            |
+| `recipe init`                   | reconstruct `.mudev.json` from the checkouts already in a tree    |
+| `recipe add <plugin>`           | check a plugin out and record it                                  |
+| `recipe prune`                  | forget plugins whose directories are gone                         |
+| `recipe set <key> <value>`      | name the workspace: `name`, `description`, `contributed_by`       |
+| `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
 
 ## Next: release management (`mudev release`)
 
@@ -58,8 +59,10 @@ flavour is diagnosed as "wrong binary" rather than "broken recipe".
 - `mudev recipe diff` — compare the workspace against the recipe it was assembled from, in both
   directions (the source moved on ↔ plugins were added locally). A preview for a future
   `switch`/`upgrade` between recipe versions.
-- Adopt an unmanaged checkout into the recipe: `list` already flags one with `?`, but `recipe
-  add` still takes its remotes from the catalogue rather than reading the existing checkout.
+- Adopt a *single* unmanaged checkout into an existing workspace: `list` already flags one with
+  `?`, but `recipe add` still takes its remotes from the catalogue rather than reading the
+  existing checkout. (`recipe init` already adopts a *whole* tree from disk; this is the
+  one-checkout-into-a-live-workspace case — it would read that checkout the way init does.)
 - Detect unmerged local branches (`list` currently flags only HEAD ≠ recorded).
 - Gather `list` status concurrently — one checkout costs about five git processes.
 - `backup` — push branches and tags to a mirror remote.

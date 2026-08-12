@@ -47,6 +47,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newPullCmd(s))
 	cmd.AddCommand(newRecipeCmd(s))
 	cmd.AddCommand(newStatusCmd(s))
+	cmd.AddCommand(newProductionCmd(s))
 
 	return cmd
 }

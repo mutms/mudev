@@ -21,6 +21,7 @@ mudev assembles a Moodle code tree from a recipe and manages the checkouts in it
 | `recipe prune`                  | forget plugins whose directories are gone                         |
 | `recipe set <key> <value>`      | name the workspace: `name`, `description`, `contributed_by`       |
 | `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
+| `production export <t.tgz>`     | pack the recorded checkouts' committed state into a deployable .tgz |
 
 ## Next: release management (`mudev release`)
 

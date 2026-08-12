@@ -97,6 +97,15 @@ func (c *Client) Clone(ctx context.Context, raw string, dir string) error {
 	return c.run(ctx, "", "clone", raw, dir)
 }
 
+// Archive writes ref's tree as a tar file at outPath.
+//
+// `git archive` (not `checkout-index`) because it exports the committed tree
+// and honours `.gitattributes export-ignore` — the way a repository declares
+// which paths are development-only and must stay out of a production build.
+func (c *Client) Archive(ctx context.Context, dir string, ref string, outPath string) error {
+	return c.run(ctx, dir, "archive", "--format=tar", "-o", outPath, ref)
+}
+
 // Passthrough runs an arbitrary git subcommand in dir, streaming its output.
 //
 // It is what the top-level verbs that mirror git are built on: mudev decides

@@ -13,18 +13,29 @@ import (
 	"github.com/mutms/mudev/internal/git"
 )
 
-// fakeComposer puts a stand-in `composer` on PATH for the duration of the test.
-// It records that it ran by creating vendor/marker.txt in its working directory
-// — which composerInstall sets to the export root — so a test can assert both
-// that composer was invoked and that its output lands in the artifact.
-func fakeComposer(t *testing.T) {
+// fakePHPAndComposer puts stand-in `php` and `composer` binaries on PATH for
+// the duration of the test.
+//
+// The fake `php` prints a real-looking `php -v` banner for the given version,
+// standing in for mpd's dispatcher, so detectPHP has a version to read. The
+// fake `composer` records the PHP version it was forced to use — from
+// MPD_PHP_FORCE_VERSION — into vendor/marker.txt in its working directory (the
+// export root), so a test can assert composer was invoked, that its output
+// lands in the artifact, and that the detected version reached it.
+func fakePHPAndComposer(t *testing.T, version string) {
 	t.Helper()
 
 	bin := t.TempDir()
 
-	script := "#!/bin/sh\nmkdir -p vendor\necho installed > vendor/marker.txt\n"
+	php := "#!/bin/sh\necho \"PHP " + version + ".9 (cli) (built: today)\"\n"
 
-	if err := os.WriteFile(filepath.Join(bin, "composer"), []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(bin, "php"), []byte(php), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	composer := "#!/bin/sh\nmkdir -p vendor\necho \"php=${MPD_PHP_FORCE_VERSION}\" > vendor/marker.txt\n"
+
+	if err := os.WriteFile(filepath.Join(bin, "composer"), []byte(composer), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -42,6 +53,27 @@ func tarList(t *testing.T, tgz string) string {
 	}
 
 	return res.Stdout
+}
+
+// extractFile unpacks a gzipped tar into a temp dir and returns one file's
+// contents, so a test can assert on what an entry actually holds rather than
+// just that its name is present.
+func extractFile(t *testing.T, tgz string, name string) string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	res, err := exec.Capture(context.Background(), exec.Cmd{Name: "tar", Args: []string{"-xzf", tgz, "-C", dir}})
+	if err != nil || res.Failed() {
+		t.Fatalf("tar -xzf %s: %v %s", tgz, err, res.Stderr)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(name)))
+	if err != nil {
+		t.Fatalf("reading %s from artifact: %v", name, err)
+	}
+
+	return string(data)
 }
 
 // assembledFixture clones the standard core + plugin fixture into a workspace
@@ -68,7 +100,7 @@ func exportInto(root string, target string) error {
 }
 
 func TestProductionExportPacksManagedCheckouts(t *testing.T) {
-	fakeComposer(t)
+	fakePHPAndComposer(t, "8.4")
 
 	root, target := assembledFixture(t)
 
@@ -96,10 +128,33 @@ func TestProductionExportPacksManagedCheckouts(t *testing.T) {
 	if strings.Contains(list, "/.git/") {
 		t.Errorf("a checkout's .git leaked into the artifact:\n%s", list)
 	}
+
+	// The PHP version detected from the workspace root was forced onto composer:
+	// the marker records what MPD_PHP_FORCE_VERSION it saw.
+	marker := extractFile(t, target, "vendor/marker.txt")
+
+	if strings.TrimSpace(marker) != "php=8.4" {
+		t.Errorf("composer did not receive the detected PHP version: %q", marker)
+	}
+}
+
+func TestDetectPHPRequiresPHP(t *testing.T) {
+	// composer for a public/ layout tree needs php; a missing php has to be a
+	// hard error, not a silent fall-through to a default interpreter.
+	t.Setenv("PATH", t.TempDir())
+
+	_, err := detectPHP(context.Background(), t.TempDir())
+	if err == nil {
+		t.Fatal("expected a missing php to be an error")
+	}
+
+	if !strings.Contains(err.Error(), "php") {
+		t.Errorf("the error should name php: %v", err)
+	}
 }
 
 func TestProductionExportRejectsDirty(t *testing.T) {
-	fakeComposer(t)
+	fakePHPAndComposer(t, "8.4")
 
 	root, target := assembledFixture(t)
 
@@ -126,7 +181,7 @@ func TestProductionExportRejectsDirty(t *testing.T) {
 }
 
 func TestProductionExportIgnoresUnmanaged(t *testing.T) {
-	fakeComposer(t)
+	fakePHPAndComposer(t, "8.4")
 
 	root, target := assembledFixture(t)
 

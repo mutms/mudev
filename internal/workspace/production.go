@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/mutms/mudev/internal/config"
@@ -90,9 +91,20 @@ func ProductionExport(ctx context.Context, opts ProductionExportOptions) error {
 	}
 
 	if needsComposer(staging) {
-		out.printf("public/ layout — composer install --no-dev --classmap-authoritative")
+		// Resolve the project's PHP from the workspace root, not the /tmp staging
+		// dir: on the mpd runtime the `php` dispatcher only reads a project's
+		// version when its cwd is under /srv/projects/<name>, which is where mudev
+		// was invoked. That resolved version is then forced onto composer so it
+		// installs under the same PHP `mudev list` would run, not the runtime's
+		// fallback.
+		phpVersion, err := detectPHP(ctx, root)
+		if err != nil {
+			return err
+		}
 
-		if err := composerInstall(ctx, staging); err != nil {
+		out.printf("public/ layout — composer install (php %s)", phpVersion)
+
+		if err := composerInstall(ctx, staging, phpVersion); err != nil {
 			return err
 		}
 	}
@@ -209,8 +221,48 @@ func needsComposer(root string) bool {
 	return err == nil
 }
 
+// phpVersionPattern pulls the major.minor version out of `php -v`'s banner
+// ("PHP 8.4.9 (cli) …") — the form the mpd php dispatcher wants for
+// MPD_PHP_FORCE_VERSION and the versioned /usr/bin/phpX.Y it execs.
+var phpVersionPattern = regexp.MustCompile(`PHP (\d+\.\d+)`)
+
+// detectPHP reports the major.minor PHP version that runs in dir.
+//
+// It is read from dir — the workspace root — on purpose: the mpd runtime's php
+// dispatcher resolves a project's configured version only when its cwd is under
+// /srv/projects/<name>, so asking there gives the version the project actually
+// uses, layered defaults and all, without mudev knowing anything about mpd.env.
+// A php that will not run is fatal here rather than later: composer cannot
+// install without it.
+func detectPHP(ctx context.Context, dir string) (string, error) {
+	if !exec.Available("php") {
+		return "", fmt.Errorf("php was not found on PATH — needed to run composer for a public/ layout tree")
+	}
+
+	res, err := exec.Capture(ctx, exec.Cmd{Name: "php", Args: []string{"-v"}, Dir: dir})
+	if err != nil {
+		return "", err
+	}
+
+	if err := res.Err(); err != nil {
+		return "", fmt.Errorf("php -v: %w", err)
+	}
+
+	match := phpVersionPattern.FindStringSubmatch(res.Stdout)
+	if match == nil {
+		return "", fmt.Errorf("could not read a PHP version from `php -v`: %q", res.Stdout)
+	}
+
+	return match[1], nil
+}
+
 // composerInstall runs Composer's production install at the tree root.
-func composerInstall(ctx context.Context, dir string) error {
+//
+// It forces the PHP version onto composer via MPD_PHP_FORCE_VERSION: composer
+// runs in a /tmp staging dir, where mpd's php dispatcher would otherwise fall
+// back to a pinned default rather than the project's own version. The variable
+// is mpd's, harmless anywhere else — a plain composer ignores it.
+func composerInstall(ctx context.Context, dir string, phpVersion string) error {
 	if !exec.Available("composer") {
 		return fmt.Errorf("composer was not found on PATH — needed for a public/ layout tree")
 	}
@@ -219,6 +271,7 @@ func composerInstall(ctx context.Context, dir string) error {
 		Name: "composer",
 		Args: []string{"install", "--no-dev", "--classmap-authoritative"},
 		Dir:  dir,
+		Env:  []string{"MPD_PHP_FORCE_VERSION=" + phpVersion},
 	})
 	if err != nil {
 		return err

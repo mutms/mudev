@@ -146,8 +146,10 @@ func render(live *Live) ([]byte, error) {
 // yaml.v3 sorts map keys alphabetically, which for a plugin entry buries the
 // name somewhere after `license` — tolerable in a file nobody reads, but an
 // exported recipe is meant to be committed, reviewed and edited by hand. One
-// list serves every level of the document: a recipe, a moodle block and a
-// plugin entry each use the subset of it that applies to them.
+// list serves every level of the document: a recipe, a moodle block, a plugin
+// entry and a git source each use the subset of it that applies to them —
+// which is why a git source reads `remotes` before `ref`, where it comes from
+// before which part of it to check out, rather than alphabetically.
 var keyOrder = []string{
 	"name",
 	"title",
@@ -162,6 +164,8 @@ var keyOrder = []string{
 	"relpath",
 	"localbranch",
 	"source",
+	"remotes",
+	"ref",
 	"requirements",
 	"patches",
 	"extra",

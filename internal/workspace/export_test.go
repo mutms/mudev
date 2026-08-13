@@ -70,6 +70,17 @@ func TestExportOrdersKeysForReading(t *testing.T) {
 	if relpath := strings.Index(document, "    relpath:"); relpath < name {
 		t.Errorf("relpath comes before the name:\n%s", document)
 	}
+
+	// A git source says where the code comes from before which part of it to
+	// check out; alphabetically it would read the other way round.
+	remotes := strings.Index(document, "        remotes:")
+	if remotes < 0 {
+		t.Fatalf("the git source has no remotes:\n%s", document)
+	}
+
+	if ref := strings.Index(document, "        ref:"); ref >= 0 && ref < remotes {
+		t.Errorf("ref comes before remotes:\n%s", document)
+	}
 }
 
 // TestExportRoundTripsThroughClone is the promise the command makes: what it

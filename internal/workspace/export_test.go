@@ -22,6 +22,19 @@ func exportOf(t *testing.T, root string) string {
 	return out.String()
 }
 
+// exportSortedOf renders a workspace's recipe the way `mudev export --sort` does.
+func exportSortedOf(t *testing.T, root string) string {
+	t.Helper()
+
+	var out strings.Builder
+
+	if err := Export(ExportOptions{Root: root, Sort: true, Out: &out}); err != nil {
+		t.Fatalf("export: %v", err)
+	}
+
+	return out.String()
+}
+
 func TestExportWritesARecipe(t *testing.T) {
 	root, pluginsDir := addFixture(t)
 
@@ -80,6 +93,47 @@ func TestExportOrdersKeysForReading(t *testing.T) {
 
 	if ref := strings.Index(document, "        ref:"); ref >= 0 && ref < remotes {
 		t.Errorf("ref comes before remotes:\n%s", document)
+	}
+}
+
+// TestExportSortsPluginsByRelpath covers --sort: the entries come out ordered
+// by where they install, whatever order the workspace was assembled in, and the
+// workspace's own record of that order is left alone.
+func TestExportSortsPluginsByRelpath(t *testing.T) {
+	root, pluginsDir := addFixture(t)
+
+	// Assembled the other way round from how they install, so an export that
+	// only happens to look sorted cannot pass.
+	for _, name := range []string{"mutms/tool_muprog", "mutms/tool_mulib"} {
+		if err := addInto(t, root, pluginsDir, name, ""); err != nil {
+			t.Fatalf("add %s: %v", name, err)
+		}
+	}
+
+	plain := exportOf(t, root)
+
+	if strings.Index(plain, "mutms/tool_muprog") > strings.Index(plain, "mutms/tool_mulib") {
+		t.Errorf("the plain export lost the assembly order:\n%s", plain)
+	}
+
+	sorted := exportSortedOf(t, root)
+
+	mulib := strings.Index(sorted, "relpath: public/admin/tool/mulib")
+	muprog := strings.Index(sorted, "relpath: public/admin/tool/muprog")
+
+	if mulib < 0 || muprog < 0 {
+		t.Fatalf("the sorted export is missing a plugin:\n%s", sorted)
+	}
+
+	if mulib > muprog {
+		t.Errorf("the plugins are not ordered by relpath:\n%s", sorted)
+	}
+
+	// Sorting is a rendering choice; .mudev.json still records what was done.
+	live := liveOf(t, root)
+
+	if len(live.Plugins) != 2 || live.Plugins[0]["name"] != "mutms/tool_muprog" {
+		t.Errorf("--sort reordered the live recipe: %v", live.Plugins)
 	}
 }
 

@@ -32,7 +32,10 @@ func newRecipeCmd(s *settings) *cobra.Command {
 
 // newRecipeExportCmd builds `mudev recipe export`.
 func newRecipeExportCmd() *cobra.Command {
-	var file string
+	var (
+		file string
+		sort bool
+	)
 
 	cmd := &cobra.Command{
 		Use:   "export",
@@ -43,7 +46,10 @@ func newRecipeExportCmd() *cobra.Command {
 			"What comes out is .mudev.json rendered as a recipe: every plugin flattened, with\n" +
 			"no dependency on a plugin catalogue, so it describes the same tree wherever it is\n" +
 			"taken. It is what the workspace was assembled to be — for what its checkouts are\n" +
-			"doing right now, use `mudev list`.",
+			"doing right now, use `mudev list`.\n\n" +
+			"Plugins come out in the order the workspace was assembled in; --sort orders them by\n" +
+			"install path instead, which is how you look one up in a long recipe, and makes two\n" +
+			"exports of the same plugins diff cleanly.",
 		Args: cobra.NoArgs,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,12 +61,14 @@ func newRecipeExportCmd() *cobra.Command {
 			return workspace.Export(workspace.ExportOptions{
 				Root: root,
 				File: file,
+				Sort: sort,
 				Out:  cmd.OutOrStdout(),
 			})
 		},
 	}
 
 	cmd.Flags().StringVar(&file, "file", "", "write to this recipe file (.yaml or .yml) instead of standard output")
+	cmd.Flags().BoolVar(&sort, "sort", false, "order the plugins by install path instead of by assembly order")
 
 	return cmd
 }

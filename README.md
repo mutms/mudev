@@ -217,6 +217,7 @@ run `recipe init` again.)
 ```sh
 mudev recipe export                           # to stdout, so it pipes and diffs
 mudev recipe export --file mysite-5.2.yaml    # .yaml or .yml required
+mudev recipe export --sort                    # plugins ordered by install path
 ```
 
 `recipe export` renders `.mudev.json` as recipe YAML, with the schema header that makes an editor
@@ -227,6 +228,11 @@ is what the command promises, and what its tests check.
 It exports what the workspace was *assembled* to be, not what its checkouts are doing at this
 moment; for that, use `mudev list`. Writing over an existing file is allowed and reported as
 `replaced`, since comments in a hand-written recipe do not survive the trip.
+
+Plugins come out in assembly order, which is the order `.mudev.json` records them in. `--sort`
+orders them by `relpath` instead — how you look a plugin up in a long recipe, and what makes two
+exports of the same plugins diff cleanly however each tree was put together. It changes only what
+is written; the workspace's own record keeps its order.
 
 ## Catalogues
 

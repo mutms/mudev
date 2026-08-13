@@ -32,6 +32,10 @@ type ExportOptions struct {
 	// File is where to write it. Empty means standard output.
 	File string
 
+	// Sort orders the plugin entries by install path instead of keeping the
+	// order the workspace was assembled in.
+	Sort bool
+
 	// Out receives the recipe when File is empty, and mudev's own confirmation
 	// line when it is not.
 	Out io.Writer
@@ -69,6 +73,14 @@ func Export(opts ExportOptions) error {
 		)
 	}
 
+	if opts.Sort {
+		// On a copy: the exported order is a rendering choice, and .mudev.json
+		// keeps recording the order the tree was assembled in.
+		sorted := *live
+		sorted.Plugins = byRelpath(live.Plugins)
+		live = &sorted
+	}
+
 	document, err := render(live)
 	if err != nil {
 		return err
@@ -102,6 +114,48 @@ func Export(opts ExportOptions) error {
 	out.printf("%s %s (%d plugin(s))", verb, opts.File, len(live.Plugins))
 
 	return nil
+}
+
+// byRelpath returns the plugin entries ordered by where they install, which is
+// how a reader looks a plugin up in a long recipe — and it makes two exports of
+// the same set of plugins diff cleanly, whatever order each tree was assembled
+// in. The natural order is assembly order, so this is what --sort asks for.
+//
+// An entry with no relpath (nothing mudev writes, but a recipe is hand-editable)
+// sorts under its name instead, so the result stays deterministic.
+func byRelpath(entries []map[string]any) []map[string]any {
+	sorted := make([]map[string]any, len(entries))
+
+	copy(sorted, entries)
+
+	sort.SliceStable(sorted, func(i, j int) bool {
+		left, right := sortKey(sorted[i]), sortKey(sorted[j])
+
+		if left != right {
+			return left < right
+		}
+
+		return field(sorted[i], "name") < field(sorted[j], "name")
+	})
+
+	return sorted
+}
+
+// sortKey is the path an entry installs at, falling back to its identifier.
+func sortKey(entry map[string]any) string {
+	if relpath := field(entry, "relpath"); relpath != "" {
+		return relpath
+	}
+
+	return field(entry, "name")
+}
+
+// field reads one string field of a decoded entry, empty if it is absent or is
+// not a string.
+func field(entry map[string]any, key string) string {
+	value, _ := entry[key].(string)
+
+	return value
 }
 
 // render turns the live recipe into the bytes of a recipe file.

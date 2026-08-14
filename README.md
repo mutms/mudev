@@ -26,6 +26,7 @@ command each for the things you would otherwise run twenty times by hand.
 | `recipe prune`                  | forget plugins whose directories are gone                         |
 | `recipe set <key> <value>`      | name the workspace                                                |
 | `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
+| `camp init [relpath]`           | write camp listing manifests into the plugin checkouts            |
 
 ## Quick start
 

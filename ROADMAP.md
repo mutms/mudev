@@ -28,3 +28,20 @@ implemented already — only the release commands themselves are missing.
 - Generate pinned edition recipes by resolving each plugin's branch to its latest release tag.
   Editions are heterogeneous (a plugin's tag follows *its* branch, not the recipe's Moodle
   version), which is why they must be generated rather than hand-written.
+
+## camp registry (`mudev camp`)
+
+[camp](https://camp-registry.org) keeps each plugin's listing content in the plugin's own
+repository and ingests it at every tagged release. Registration has three stages: discovery
+(camp's own scan, already done for the MuTMS plugins), claiming, and releasing.
+
+- `camp init [relpath]` — **done**. Writes `.camp/listing.yml` and camp's `.gitattributes`
+  export-ignore rules into each plugin checkout. The listing is generated rather than
+  templated: the name is the plugin's `pluginname` string, the summary its README's lead
+  paragraph, the links its recorded origin remote. camp's own `camp scaffold` has none of
+  that context and falls back to the component name, which is an identifier and not a title.
+- `camp claim` — planned. Claiming is one pull request per plugin against the camp-index
+  entry, adding a `security-contact`, the disclosure labels and `tier: 1`. mudev can render
+  the patched entries; opening the PRs stays manual.
+- Releasing (tier 2) waits on `mudev release`, and on camp publishing the author-side release
+  workflow its docs refer to — that template is not in any public camp repository yet.

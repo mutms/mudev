@@ -257,6 +257,12 @@ self-contained file, which is what `mudev recipe export` produces.
 - [docs/ci.md](docs/ci.md) — forgejo-runner / CI usage
 - [ROADMAP.md](ROADMAP.md) — what is planned, and what is deliberately not
 
+## AI disclosure
+
+Majority of this plugin was written with the help of Claude (Anthropic). Everything it produced was
+reviewed, corrected where needed and accepted by a human maintainer before being committed; the
+design decisions and the final state of the code are the maintainers'.
+
 ## License
 
 GPL-3.0-or-later — see [LICENSE.txt](LICENSE.txt).

@@ -19,22 +19,18 @@ Two levels below the vendor: a **stream** and a **version**.
   mudev `switch`/`upgrade`). Files are named by the release version
   `<moodle-point-release>.<mutms-increment>`, e.g. `mutms/moodle/4.5.12.01` (built on Moodle
   4.5.12, MuTMS increment 01). Editions so far:
-  - `full` — full MuTMS: patched core + multi-tenancy, all plugins.
+  - `release` — full MuTMS: patched core + multi-tenancy, all plugins.
   - `moodle` — MuTMS without core Moodle changes and no multi-tenancy support (stock Moodle
     core; tenancy plugins omitted).
   - `programs` — programs/learning subset, e.g. for demoing MuTMS Programs to clients.
 
   **Per-plugin refs are heterogeneous** — a plugin's release tag depends on *its* branch, not
-  the recipe's Moodle version. On Moodle 5.2, `tool_mulib` is pinned to `v5.0.8.01` (its
-  `MOODLE_500_STABLE` branch serves 5.0/5.1/5.2) while `tool_mutenancy` is `v5.2.1.01` (it has
-  a dedicated `MOODLE_502_STABLE` branch). The `tool_certificate` fork has no MuTMS tag at all
-  and is pinned to a commit. So release recipes must be **generated** (mudev resolves each
-  plugin's branch → its latest release tag), not hand-written with a uniform version. The 4.5
-  line happens to be clean (every plugin has a dedicated 405 branch, so tags synchronize at
-  `v4.5.12.01`), which is why `mutms/moodle/4.5.12.01` could be written directly as a sample.
+  the recipe's Moodle version. On Moodle 5.2, `tool_mulib` is pinned to `v5.0.9.01` (its
+  `MOODLE_500_STABLE` branch serves 5.0/5.1/5.2) while `tool_mutenancy` is `v5.2.2.01` (it has
+  a dedicated `MOODLE_502_STABLE` branch).
 
 Besides `mutms/`, a **`moodle/` vendor** holds plain, plugin-less Moodle base recipes
-(`moodle/release/5.2.1` → stock core at `v5.2.1`, `plugins: []`) — a clean base and a nod to
+(`moodle/release/5.2.2` → stock core at `v5.2.2`, `plugins: []`) — a clean base and a nod to
 mudev's longer-term general-Moodle goal.
 
 The same schema also validates the **live recipe** — a single, self-contained `/.mudev.json` at
@@ -81,7 +77,7 @@ plugins:
   - name: mutms/tool_mulib           # reference (branch auto-resolved from the catalogue)
     extra: {mudev: {release: mutms}} # release-managed under the `mutms` flavour
   - name: mutms/tool_mutenancy       # reference pinned to a tag
-    source: {git: {ref: v5.2.1.01}}  #   version lives in source.git.ref (remotes from catalogue)
+    source: {git: {ref: v5.2.2.01}}  #   version lives in source.git.ref (remotes from catalogue)
   - mutms/tool_certificate           # bare reference (not release-managed)
 ```
 

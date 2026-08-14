@@ -62,7 +62,7 @@ git config --global url."git@github.com:".insteadOf "https://github.com/"
 
 ```sh
 mkdir -p ~/sites/mutms52 && cd ~/sites/mutms52   # mudev never creates the directory,
-mudev clone mutms/full/5.2.1.01                  # so it keeps your owner/permissions
+mudev clone mutms/release/5.2.2.01                  # so it keeps your owner/permissions
 ```
 
 `clone` takes either a catalogue identifier (`vendor/stream/version`) or a path to a recipe
@@ -80,10 +80,10 @@ mudev list --columns path,state,recorded
 ```
 
 ```
-.                                      *     MOODLE_502_STABLE...origin/*  2026071600.00  5.2.1+
-public/admin/tool/certificate                MOODLE_502_STABLE...origin/*  2026042100     5.0.7
-public/admin/tool/mulib                1↑ ≠  MDL-1234-fix...origin/MOOD…   2026060550     v5.0.8.01
-public/admin/tool/mutenancy                  (detached)                    2026060552     v5.2.1.01  v5.2.1.01
+.                                      *     MOODLE_502_STABLE...origin/*  2026071600.00  5.2.2+
+public/admin/tool/certificate                MOODLE_502_STABLE...origin/*  2026042100     5.0.8
+public/admin/tool/mulib                1↑ ≠  MDL-1234-fix...origin/MOOD…   2026060550     v5.0.9.01
+public/admin/tool/mutenancy                  (detached)                    2026060552     v5.2.2.01  v5.2.2.01
 public/admin/tool/scratch              ?     master
 ```
 
@@ -113,7 +113,7 @@ upstream) are skipped rather than treated as failures.
 ```sh
 mudev recipe add mutms/tool_mulib          # from the catalogue
 mudev recipe add ./tool_scratch.yaml       # a plugin that is not in it yet
-mudev recipe add mutms/tool_mulib --ref v5.0.8.01
+mudev recipe add mutms/tool_mulib --ref v5.0.9.01
 ```
 
 The plugin lands at its `relpath` inside the tree, on the branch that serves this workspace's
@@ -243,7 +243,7 @@ this one. Both are CC BY 4.0: reusing an entry means keeping its `contributed_by
 - `mdl-plugins/<vendor>/<package>.yaml` — what a plugin is: where it installs, where the code
   is, which git branch serves which Moodle version. Identifier `mutms/tool_mulib`.
 - `mdl-recipes/<vendor>/<stream>/<version>.yaml` — what a site is. Identifier
-  `mutms/full/5.2.1.01`.
+  `mutms/release/5.2.2.01`.
 
 A recipe does not have to come from a catalogue at all: `mudev clone ./mysite.yaml` takes a
 self-contained file, which is what `mudev recipe export` produces.

@@ -41,7 +41,7 @@ repository, and the git config is not.
 
 ```sh
 mkdir -p "$CI_WORKSPACE/moodle" && cd "$CI_WORKSPACE/moodle"   # prepare + own the dir first
-mudev clone mutms/full/5.2.1.01                                # identifier → mdl-recipes; assembles into cwd
+mudev clone mutms/release/5.2.2.01                                # identifier → mdl-recipes; assembles into cwd
 # (or: mudev clone ./recipe.yaml   to clone a recipe file directly)
 # → CI script then sets up DB + config.php and runs phpunit/behat init
 ```
@@ -50,6 +50,6 @@ mudev clone mutms/full/5.2.1.01                                # identifier → 
 where the problem is. It is also idempotent, which makes a cached workspace cheap: re-running
 it against a warm directory brings the tree up to the recipe instead of rebuilding it.
 
-Use a **pinned edition** recipe (`mutms/full/5.2.1.01`), not a `dev/` one: an edition pins every
+Use a **pinned edition** recipe (`mutms/release/5.2.2.01`), not a `dev/` one: an edition pins every
 plugin to a tag or commit, so the same job produces the same tree next month. Clones are
 currently full, not shallow — see [ROADMAP.md](../ROADMAP.md).

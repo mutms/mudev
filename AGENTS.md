@@ -98,7 +98,7 @@ never applied — so a tree never mixes release rulesets.
 Catalogues are vendor-grouped: `mdl-plugins/<vendor>/<package>.yaml` (identifier
 `vendor/package`) and `mdl-recipes/<vendor>/<stream>/<version>.yaml` (identifier
 `vendor/stream/version`). `dev/` is the rolling full workspace (`mutms/dev/5.2`); release
-editions are pinned (`mutms/full/5.2.1.01`). See `docs/plugin-format.md` and
+editions are pinned (`mutms/release/5.2.2.01`). See `docs/plugin-format.md` and
 `docs/recipe-format.md`.
 
 ## Package layout

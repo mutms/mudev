@@ -16,7 +16,7 @@ func newCloneCmd(s *settings) *cobra.Command {
 		Long: "Assemble a Moodle code tree from a recipe into the current directory.\n\n" +
 			"<recipe> is either a recipe file (a path ending in .yaml/.yml, handy for an\n" +
 			"ad-hoc private recipe) or a catalogue identifier vendor/stream/version, e.g.\n" +
-			"mutms/full/5.2.1.01, resolved in the recipes directory.\n\n" +
+			"mutms/release/5.2.2.01, resolved in the recipes directory.\n\n" +
 			"Moodle core is checked out into the current directory — which mudev never\n" +
 			"creates, so it keeps the owner and permissions you gave it — and each plugin\n" +
 			"becomes its own git checkout at its path inside that tree.\n\n" +

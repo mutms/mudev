@@ -83,7 +83,7 @@ func TestLiveRoundTrip(t *testing.T) {
 
 	live := &Live{
 		Name:          "smoke",
-		BasedOnRecipe: "mutms/full/5.2.1.01",
+		BasedOnRecipe: "mutms/release/5.2.2.01",
 		Base: map[string]any{
 			"mdlbranch": "502",
 			"source": map[string]any{
@@ -120,7 +120,7 @@ func TestLiveRoundTrip(t *testing.T) {
 		t.Fatalf("LoadLive: %v", err)
 	}
 
-	if reloaded.BasedOnRecipe != "mutms/full/5.2.1.01" {
+	if reloaded.BasedOnRecipe != "mutms/release/5.2.2.01" {
 		t.Errorf("provenance lost: %+v", reloaded)
 	}
 

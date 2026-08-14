@@ -74,7 +74,7 @@ func TestReleaseFlavourIgnoresOtherNamespaces(t *testing.T) {
 func TestLocate(t *testing.T) {
 	dir := t.TempDir()
 
-	recipes := filepath.Join(dir, "mutms", "full")
+	recipes := filepath.Join(dir, "mutms", "release")
 
 	if err := os.MkdirAll(recipes, 0o755); err != nil {
 		t.Fatal(err)
@@ -87,12 +87,12 @@ func TestLocate(t *testing.T) {
 	}
 
 	// A catalogue identifier resolves under the recipes directory…
-	path, id, err := Locate(dir, "mutms/full/5.2.1.01")
+	path, id, err := Locate(dir, "mutms/release/5.2.2.01")
 	if err != nil {
 		t.Fatalf("Locate: %v", err)
 	}
 
-	if path != file || id != "mutms/full/5.2.1.01" {
+	if path != file || id != "mutms/release/5.2.2.01" {
 		t.Errorf("Locate = %q, %q", path, id)
 	}
 
@@ -106,7 +106,7 @@ func TestLocate(t *testing.T) {
 		t.Errorf("Locate = %q, %q", path, id)
 	}
 
-	if _, _, err := Locate(dir, "mutms/full/nope"); err == nil {
+	if _, _, err := Locate(dir, "mutms/release/nope"); err == nil {
 		t.Error("expected an error for a missing recipe")
 	}
 

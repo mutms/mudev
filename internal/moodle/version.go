@@ -14,7 +14,7 @@ type Version struct {
 	Version string
 
 	// Release is the human release string ($plugin->release, or $release in
-	// core), e.g. "v5.2.1.01".
+	// core), e.g. "v5.2.2.01".
 	Release string
 }
 

@@ -56,10 +56,11 @@ than mudev — a composer-based assembler, a catalogue website — and extended 
 this one. Both are CC0 (public domain): reuse freely — keeping an entry's `contributed_by`
 credit is a courtesy, not a condition.
 
-- `mdl-plugins/<vendor>/<package>.yaml` — what a plugin is: where it installs, where the code
-  is, which git branch serves which Moodle version. Identifier `mutms/tool_mulib`.
-- `mdl-recipes/<vendor>/<stream>/<version>.yaml` — what a site is. Identifier
-  `mutms/release/5.2.2.01`.
+- [mdl-plugins](https://github.com/mutms/mdl-plugins) — `<vendor>/<package>.yaml`, what a
+  plugin is: where it installs, where the code is, which git branch serves which Moodle
+  version. Identifier `mutms/tool_mulib`.
+- [mdl-recipes](https://github.com/mutms/mdl-recipes) — `<vendor>/<stream>/<version>.yaml`,
+  what a site is. Identifier `mutms/release/5.2.2.01`.
 
 A recipe does not have to come from a catalogue at all: `mudev clone ./mysite.yaml` takes a
 self-contained file, which is what `mudev recipe export` produces.

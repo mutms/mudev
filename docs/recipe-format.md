@@ -57,7 +57,7 @@ already in a tree** (see below).
 ## Example
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/mutms/mudev/main/schema/recipe.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mutms/mudev/main/go/schema/recipe.schema.json
 name: MuTMS dev on Moodle 5.2
 catalog: ../../../mdl-plugins       # where bare-name references resolve (relative to this file)
 extra:

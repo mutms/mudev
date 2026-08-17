@@ -19,7 +19,7 @@ recipe, not here* (see `recipe-format.md`).
 ## Example
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/mutms/mudev/main/schema/plugin.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mutms/mudev/main/go/schema/plugin.schema.json
 name: mutms/tool_mulib
 title: MuTMS shared library
 description: SQL builder, context map, notifications, AJAX forms, upsert, extdb.

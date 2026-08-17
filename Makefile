@@ -1,6 +1,15 @@
+GO_DIR := $(CURDIR)/go
+
 BINARY      := mudev
-PKG         := github.com/mutms/mudev/cmd/mudev
+PKG         := github.com/mutms/mudev/go/cmd/mudev
 INSTALL_DIR := $(HOME)/.local/bin
+
+# Version stamped into the binary (`mudev --version`). `git describe` reads
+# the nearest tag, so release builds are made AFTER tagging: an exact tag
+# gives "v0.1.0", commits past it give "v0.1.0-3-gabc1234", uncommitted
+# changes append "-dirty". Outside a git checkout it falls back to "dev".
+VERSION := $(shell git -C $(CURDIR) describe --tags --always --dirty 2>/dev/null || echo dev)
+LDFLAGS := -X main.version=$(VERSION)
 
 # Build with the Go that Debian Trixie ships (golang-go, currently 1.24.x)
 # and nothing else.
@@ -13,7 +22,7 @@ INSTALL_DIR := $(HOME)/.local/bin
 #
 # If you hit that failure: lower the `go` directive in go.mod, or pick a
 # dependency version whose own go.mod fits — do not raise the floor above
-# what Trixie packages. (Same rule, same wording, as mpd's Makefile.)
+# what Trixie packages.
 export GOTOOLCHAIN = local
 
 .PHONY: build install uninstall build-static test vet fmt fmt-check tidy clean
@@ -29,9 +38,10 @@ fmt-check:
 		echo "not gofmt-clean:"; echo "$$unformatted"; exit 1; \
 	fi
 
-# Local developer build (native).
+# Local developer build (native). Output lands in the repo-root bin/ (gitignored),
+# which is where install/clean look — the go build itself runs from $(GO_DIR).
 build:
-	go build -o bin/$(BINARY) $(PKG)
+	cd $(GO_DIR) && go build -ldflags "$(LDFLAGS)" -o $(CURDIR)/bin/$(BINARY) $(PKG)
 
 # Symlink the built binary onto PATH (~/.local/bin). The link points at the repo's
 # bin/$(BINARY), so a later `make build` updates it in place — no reinstall needed.
@@ -43,19 +53,23 @@ install: build
 uninstall:
 	rm -f $(INSTALL_DIR)/$(BINARY)
 
-# Self-contained static binaries for CI images (Linux only).
+# Self-contained static binaries for CI images and GitHub releases (Linux
+# only). The version is part of the file name, so dist/ is cleared first —
+# otherwise binaries of older versions would pile up next to the new ones,
+# waiting to be uploaded by mistake.
 build-static:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o dist/$(BINARY)-linux-amd64 $(PKG)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o dist/$(BINARY)-linux-arm64 $(PKG)
+	rm -rf $(CURDIR)/dist
+	cd $(GO_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "$(LDFLAGS)" -o $(CURDIR)/dist/$(BINARY)-$(VERSION)-linux-amd64 $(PKG)
+	cd $(GO_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "$(LDFLAGS)" -o $(CURDIR)/dist/$(BINARY)-$(VERSION)-linux-arm64 $(PKG)
 
 test:
-	go test ./...
+	cd $(GO_DIR) && go test ./...
 
 vet:
-	go vet ./...
+	cd $(GO_DIR) && go vet ./...
 
 tidy:
-	go mod tidy
+	cd $(GO_DIR) && go mod tidy
 
 clean:
 	rm -rf bin dist

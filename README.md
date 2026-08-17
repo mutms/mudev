@@ -1,20 +1,30 @@
 # mudev — Moodle/MuTMS development tool
 
-A single Go binary that assembles a Moodle code tree from a **recipe** — Moodle core plus a
-selection of plugins, each as its own git checkout at its place in the tree — and then manages
-those twenty-odd repositories as one workspace. Written for developing
-[MuTMS](https://github.com/mutms) plugins, and for building Moodle test-site trees in CI.
+mudev prepares the source code of a Moodle site. You give it a **recipe** — a small YAML file
+that says what the site is made of: which Moodle version, which plugins, which releases — and
+mudev fetches all of it and arranges it into a ready-to-use code tree, every plugin in its
+right place. It was written for developing [MuTMS](https://github.com/mutms) plugins.
 
-A recipe is YAML, and it says what a site *is*: which Moodle, which plugins, which versions.
-mudev turns that into a working tree and records what it did in `.mudev.json`.
+## Where you'll meet it
 
-mudev is Linux only. The [mdl-demo](https://github.com/mutms/mdl-demo) container uses mudev
-internally to prepare its Moodle demo site. It is not meant to be used directly in production
-environments.
+mudev is plumbing: most people never install it themselves, they meet it working inside
+something else.
 
-## What it does for you
+- **[mpd](https://github.com/mutms/mpd)** — the Moodle plugin development environment. Its
+  Linux VM ships mudev pre-installed, and developers use it there to set up and maintain their
+  project workspaces.
+- **[mdl-demo](https://github.com/mutms/mdl-demo)** — the try-Moodle-on-your-own-computer
+  container. When you pick a Moodle version in its web UI, it is mudev that assembles the demo
+  site's code behind the scenes.
+- **CI** — automated test pipelines use the standalone mudev binary to build the Moodle site
+  trees that plugins are tested against.
 
-Two things cover most of what people need:
+mudev runs on Linux only, and it is not meant for production servers — it prepares code for
+development, demos and testing.
+
+## Using it yourself
+
+Two commands cover most of what people need:
 
 **Clone a recipe** into a directory and you get a ready-to-use Moodle tree — core plus every
 plugin checked out at its place:

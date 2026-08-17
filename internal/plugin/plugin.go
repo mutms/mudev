@@ -41,8 +41,9 @@ type Plugin struct {
 	Homepage string `json:"homepage,omitempty"`
 	License  string `json:"license,omitempty"`
 
-	// ContributedBy is the CC BY attribution party — a name or a list of them,
-	// hence the open type.
+	// ContributedBy is the courtesy-credit party — a name or a list of them,
+	// hence the open type. The catalogue is CC0; the credit is not a license
+	// condition.
 	ContributedBy any `json:"contributed_by,omitempty"`
 
 	// Requirements maps a git branch name to what that branch serves and needs.

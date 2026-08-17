@@ -69,7 +69,7 @@
       "description": "SPDX license identifier, e.g. GPL-3.0-or-later."
     },
     "contributed_by": {
-      "description": "Attribution party for this catalogue entry under CC BY 4.0. Reusers must retain it (see the catalogue README). A name or list of names.",
+      "description": "Credit party for this catalogue entry. The catalogue is CC0: keeping the credit on reuse is a courtesy, not a condition (see the catalogue README). A name or list of names.",
       "oneOf": [
         { "type": "string" },
         { "type": "array", "items": { "type": "string" }, "minItems": 1 }

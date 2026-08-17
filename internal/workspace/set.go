@@ -102,7 +102,7 @@ func assign(live *Live, key string, value string) (previous string, err error) {
 		}
 
 	case "based_on_recipe":
-		// Provenance, and the CC BY attribution to the recipe this workspace
+		// Provenance, and the courtesy credit to the recipe this workspace
 		// was adapted from. Rewriting it would misattribute somebody's work.
 		return "", fmt.Errorf(
 			"based_on_recipe records where this workspace came from and credits it — it is not editable",

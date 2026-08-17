@@ -35,7 +35,8 @@ type Recipe struct {
 	// plugins directory.
 	Catalog string `json:"catalog,omitempty"`
 
-	// ContributedBy is the CC BY attribution party (a name or a list). On a
+	// ContributedBy is the courtesy-credit party (a name or a list; the
+	// catalogues are CC0, so it is credit, not a license condition). On a
 	// live recipe it identifies the project owner.
 	ContributedBy any `json:"contributed_by,omitempty"`
 

@@ -86,8 +86,8 @@ plugins:
 | Field                | Req | Meaning                                                                                                                                                                                                                      |
 |----------------------|-----|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `name`               | no  | Human label.                                                                                                                                                                                                                 |
-| `contributed_by`     | no  | Attribution party (name or list); also asserts recipe authorship. CC BY 4.0 → retained on reuse. In a live recipe, this is the *project owner*.                                                                              |
-| `based_on_recipe`    | no  | Live-recipe only: what `clone` was given — a catalogue identifier *or* a recipe file path (provenance); also the CC BY credit to a catalogue source (see below).                                                             |
+| `contributed_by`     | no  | Credit party (name or list); also asserts recipe authorship. Catalogues are CC0 — keeping it on reuse is a courtesy, not a condition. In a live recipe, this is the *project owner*.                                         |
+| `based_on_recipe`    | no  | Live-recipe only: what `clone` was given — a catalogue identifier *or* a recipe file path (provenance); also the courtesy credit to a catalogue source (see below).                                                          |
 | `catalog`            | no  | Where bare-name references resolve; path relative to the file, or absolute. Defaults to `MUDEV_PLUGINS_DIRECTORY`.                                                                                                           |
 | `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.release` = release flavour. See below.                                                                                                        |
 | `base.mdlbranch`     | yes | Moodle `$branch` code (e.g. `502`). Drives plugin-branch resolution.                                                                                                                                                         |
@@ -338,15 +338,15 @@ reconciles the record). A recorded name is never re-derived on refresh, so updat
 rename an entry. There is deliberately no bulk form — to re-snapshot the whole tree, delete
 `.mudev.json` and run `recipe init` again.
 
-## Attribution in the live recipe
+## Credit in the live recipe
 
-The live recipe (`.mudev.json`) is an *adaptation* of the source recipe, so CC BY
-attribution is carried in two layers rather than by copying the source's `contributed_by`:
+The catalogues are CC0, so none of this is a license obligation — but mudev still carries
+credit for the source recipe in two layers rather than by copying the source's
+`contributed_by`:
 
 - **`based_on_recipe`** records what `clone` was given — a catalogue identifier or a recipe file
   path. For a catalogue source it credits the source recipe (and, being "based on", indicates
-  adaptation) — the CC BY attribution to the recipe author; for a loose file it's provenance
-  ("cloned from that file").
+  adaptation); for a loose file it's provenance ("cloned from that file").
 - Each **inlined plugin entry retains its own `contributed_by`** — reusing a catalogue plugin
   keeps that contributor's credit, even inside a project checkout.
 - A top-level **`contributed_by`** on the live recipe, if present, is the **project owner** who

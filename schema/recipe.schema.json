@@ -23,7 +23,7 @@
       "description": "Where bare-name plugin references resolve. Path relative to this file, or absolute. Defaults to MUDEV_PLUGINS_DIRECTORY when omitted."
     },
     "contributed_by": {
-      "description": "Attribution party for this recipe under CC BY 4.0 (also asserts recipe authorship/ownership). Reusers must retain it (see the catalogue README). A name or list of names. In a resolved .mudev.json this identifies the project owner, NOT the source recipe author (see based_on_recipe).",
+      "description": "Credit party for this recipe (also asserts recipe authorship/ownership). The catalogues are CC0: keeping the credit on reuse is a courtesy, not a condition (see the catalogue README). A name or list of names. In a resolved .mudev.json this identifies the project owner, NOT the source recipe author (see based_on_recipe).",
       "oneOf": [
         {
           "type": "string"
@@ -38,7 +38,7 @@
       ]
     },
     "based_on_recipe": {
-      "description": "For a live recipe (.mudev.json): the source it was cloned from — a catalogue identifier (vendor/stream/version) or, when cloned from a recipe file, that file's path (provenance). This is also the CC BY attribution to a catalogue source (crediting it and indicating adaptation) — used instead of copying the source's top-level contributed_by. Inlined plugin entries still retain their own contributed_by.",
+      "description": "For a live recipe (.mudev.json): the source it was cloned from — a catalogue identifier (vendor/stream/version) or, when cloned from a recipe file, that file's path (provenance). This also credits a catalogue source (courtesy credit, indicating adaptation) — used instead of copying the source's top-level contributed_by. Inlined plugin entries still retain their own contributed_by.",
       "oneOf": [
         {
           "type": "string"

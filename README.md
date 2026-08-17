@@ -239,7 +239,8 @@ is written; the workspace's own record keeps its order.
 
 Plugin metadata and recipes live in their own repositories, so they can be read by tools other
 than mudev — a composer-based assembler, a catalogue website — and extended without changing
-this one. Both are CC BY 4.0: reusing an entry means keeping its `contributed_by` credit.
+this one. Both are CC0 (public domain): reuse freely — keeping an entry's `contributed_by`
+credit is a courtesy, not a condition.
 
 - `mdl-plugins/<vendor>/<package>.yaml` — what a plugin is: where it installs, where the code
   is, which git branch serves which Moodle version. Identifier `mutms/tool_mulib`.

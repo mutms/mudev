@@ -31,14 +31,26 @@ func newCloneCmd(s *settings) *cobra.Command {
 				return err
 			}
 
+			shallow, err := cmd.Flags().GetBool("shallow")
+			if err != nil {
+				return err
+			}
+
 			return workspace.Clone(cmd.Context(), workspace.Options{
-				Config: s.cfg,
-				Recipe: args[0],
-				Root:   root,
-				Out:    cmd.OutOrStdout(),
+				Config:  s.cfg,
+				Recipe:  args[0],
+				Root:    root,
+				Out:     cmd.OutOrStdout(),
+				Shallow: shallow,
 			})
 		},
 	}
+
+	cmd.Flags().Bool("shallow", false,
+		"fetch only the tip commit, not the full history: a tag or commit lands\n"+
+			"detached, a branch as a local branch with no upstream (a later\n"+
+			"`mudev fetch` unshallows). Best effort — a remote that will not serve\n"+
+			"the ref at depth 1 is assembled in full instead")
 
 	return cmd
 }

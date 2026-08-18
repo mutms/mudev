@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added --shallow parameter to clone command
+
 ### Fixed
 
 - Added links to mdl-plugins and mdl-recipes repositories 

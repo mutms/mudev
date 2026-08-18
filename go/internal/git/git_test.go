@@ -173,6 +173,62 @@ func TestShallowFetchThenUnshallow(t *testing.T) {
 	}
 }
 
+// TestShallowFetchBranchNoTrack covers the --shallow path for a branch ref: the
+// branch tip is fetched at depth 1 and a local branch is created from it with no
+// upstream. Both properties matter — shallow keeps the checkout small, and the
+// missing upstream is what keeps `mudev pull` (which skips a branch that tracks
+// nothing) from ever fast-forwarding a truncated history.
+func TestShallowFetchBranchNoTrack(t *testing.T) {
+	ctx := context.Background()
+	c := &Client{}
+
+	origin := t.TempDir()
+	mustGit(t, origin, "init", "--quiet", "-b", "main")
+	mustGit(t, origin, "config", "user.email", "t@example.org")
+	mustGit(t, origin, "config", "user.name", "t")
+	mustGit(t, origin, "config", "commit.gpgsign", "false")
+
+	for i := range 3 {
+		name := filepath.Join(origin, fmt.Sprintf("f%d", i))
+		if err := os.WriteFile(name, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		mustGit(t, origin, "add", ".")
+		mustGit(t, origin, "commit", "--quiet", "-m", fmt.Sprintf("c%d", i))
+	}
+
+	dir := t.TempDir()
+	if err := c.Init(ctx, dir); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	// file:// so git honours --depth over the local transport.
+	if err := c.SetRemote(ctx, dir, "origin", "file://"+origin); err != nil {
+		t.Fatalf("set remote: %v", err)
+	}
+
+	if err := c.FetchShallowBranch(ctx, dir, "origin", "main"); err != nil {
+		t.Fatalf("shallow branch fetch: %v", err)
+	}
+	if !c.IsShallow(ctx, dir) {
+		t.Fatal("repository does not report itself shallow after --depth 1")
+	}
+	if got := commitCount(t, dir, "origin/main"); got != 1 {
+		t.Errorf("shallow fetch brought %d commits, want 1", got)
+	}
+
+	if err := c.CreateBranchNoTrack(ctx, dir, "MOODLE_502_STABLE", "origin/main"); err != nil {
+		t.Fatalf("create branch: %v", err)
+	}
+
+	// On the branch, but with no upstream — the state pull deliberately skips.
+	if branch, ok := c.OnBranch(ctx, dir); !ok || branch != "MOODLE_502_STABLE" {
+		t.Errorf("current branch = %q (%v), want MOODLE_502_STABLE", branch, ok)
+	}
+	if c.HasUpstream(ctx, dir) {
+		t.Error("a --no-track branch reports an upstream, want none")
+	}
+}
+
 // TestIsShallowOnOrdinaryRepo guards the negative: a normal checkout must not
 // be mistaken for a shallow one, or every fetch would pay for an unshallow
 // that has nothing to do.

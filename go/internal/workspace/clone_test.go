@@ -300,6 +300,130 @@ func TestCloneIsIdempotent(t *testing.T) {
 	}
 }
 
+// cloneShallowInto assembles the recipe with --shallow requested.
+func cloneShallowInto(t *testing.T, recipePath string, root string) error {
+	t.Helper()
+
+	return Clone(context.Background(), Options{
+		Config:  config.Defaults(),
+		Recipe:  recipePath,
+		Root:    root,
+		Out:     io.Discard,
+		Shallow: true,
+	})
+}
+
+// gitFails reports whether a git command exits non-zero — for asserting the
+// absence of a thing, such as the upstream a shallow branch must not have.
+func gitFails(t *testing.T, dir string, args ...string) bool {
+	t.Helper()
+
+	res, err := exec.Capture(context.Background(), exec.Cmd{Name: "git", Args: args, Dir: dir})
+	if err != nil {
+		t.Fatalf("git %v: %v", args, err)
+	}
+
+	return res.Failed()
+}
+
+// shallowFixture is workspaceFixture's sibling for the --shallow tests: it
+// reaches the core over file:// so git honours --depth 1 (the local-path
+// transport can ignore it), and lets the caller pin the base ref to either a
+// branch or a tag. It returns the recipe path and an empty workspace root.
+func shallowFixture(t *testing.T, baseRef string) (recipePath string, root string) {
+	t.Helper()
+
+	base := t.TempDir()
+
+	core := filepath.Join(base, "remote-core")
+	fakeCore(t, core, "502")
+	// A tag on the patch branch tip, so a tag-ref recipe has something to pin.
+	runGit(t, core, "tag", "v5.2.1.01", "patch/mutms/MOODLE_502_STABLE")
+
+	recipePath = filepath.Join(base, "recipe.yaml")
+
+	recipe := `name: shallow test
+base:
+  mdlbranch: "502"
+  source:
+    git:
+      remotes:
+        origin: file://` + core + `
+      ref: ` + baseRef + `
+  localbranch: MOODLE_502_STABLE
+plugins: []
+`
+
+	if err := os.WriteFile(recipePath, []byte(recipe), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	root = filepath.Join(base, "workspace")
+
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	return recipePath, root
+}
+
+// TestCloneShallowBranchIsAnUntrackedShallowBranch covers --shallow for a branch
+// ref: the checkout is a real, developable local branch (not detached), but
+// truncated to one commit and with no upstream. The missing upstream is the load-
+// bearing property — `mudev pull` skips a branch that tracks nothing, so a shallow
+// checkout is never something pull fast-forwards on a partial history, while
+// `mudev fetch` can still unshallow it.
+func TestCloneShallowBranchIsAnUntrackedShallowBranch(t *testing.T) {
+	recipePath, root := shallowFixture(t, "origin/patch/mutms/MOODLE_502_STABLE")
+
+	if err := cloneShallowInto(t, recipePath, root); err != nil {
+		t.Fatalf("Clone --shallow: %v", err)
+	}
+
+	// On the branch the recipe named — a branch, not a detached HEAD.
+	if head := gitOut(t, root, "branch", "--show-current"); head != "MOODLE_502_STABLE" {
+		t.Errorf("core is on %q, want branch MOODLE_502_STABLE", head)
+	}
+
+	// History is genuinely truncated, not merely flagged.
+	if got := strings.TrimSpace(gitOut(t, root, "rev-parse", "--is-shallow-repository")); got != "true" {
+		t.Errorf("core reports is-shallow=%q, want true", got)
+	}
+
+	if got := strings.TrimSpace(gitOut(t, root, "rev-list", "--count", "HEAD")); got != "1" {
+		t.Errorf("core has %s commits, want 1 (shallow)", got)
+	}
+
+	// No upstream — the property that keeps pull away from it.
+	if !gitFails(t, root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}") {
+		t.Errorf("shallow branch has an upstream, want none")
+	}
+}
+
+// TestCloneShallowTagIsDetachedAndShallow covers --shallow for a tag ref: a
+// pinned edition is checked out detached — there is no branch it belongs on —
+// and truncated to the one tagged commit.
+func TestCloneShallowTagIsDetachedAndShallow(t *testing.T) {
+	recipePath, root := shallowFixture(t, "v5.2.1.01")
+
+	if err := cloneShallowInto(t, recipePath, root); err != nil {
+		t.Fatalf("Clone --shallow: %v", err)
+	}
+
+	// Detached: no current branch.
+	if head := gitOut(t, root, "branch", "--show-current"); head != "" {
+		t.Errorf("core is on branch %q, want a detached HEAD", head)
+	}
+
+	if got := strings.TrimSpace(gitOut(t, root, "rev-parse", "--is-shallow-repository")); got != "true" {
+		t.Errorf("core reports is-shallow=%q, want true", got)
+	}
+
+	if got := strings.TrimSpace(gitOut(t, root, "describe", "--tags")); got != "v5.2.1.01" {
+		t.Errorf("core is at %q, want the tag v5.2.1.01", got)
+	}
+}
+
 // TestCloneFetchesEveryRemoteInOrder checks the mirror-priming arrangement: a
 // recipe naming a fast local mirror before origin must fetch both, mirror
 // first, so that origin is left with only the difference to send.

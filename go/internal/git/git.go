@@ -181,6 +181,28 @@ func (c *Client) FetchShallowTag(ctx context.Context, dir string, remote string,
 	return c.run(ctx, dir, "fetch", "--depth", "1", remote, "tag", ref)
 }
 
+// FetchShallowBranch fetches one branch at depth 1 into its remote-tracking ref.
+//
+// Unlike FetchShallowTag there is no cheaper-refspec trick to make: a branch is a
+// single ref, and the configured fetch refspec (set by `git remote add`) lands it
+// at refs/remotes/<remote>/<branch>, from which the caller creates a local branch.
+// The tip goes to the tracking ref rather than straight to refs/heads/<branch>
+// because git refuses to fetch into the branch HEAD points at, even an unborn one.
+func (c *Client) FetchShallowBranch(ctx context.Context, dir string, remote string, branch string) error {
+	return c.run(ctx, dir, "fetch", "--depth", "1", remote, branch)
+}
+
+// CreateBranchNoTrack creates a local branch at start and switches to it, with no
+// upstream set.
+//
+// The absence of an upstream is the point, not an omission: it is how a --shallow
+// branch stays out of `mudev pull`'s way (pull skips a branch that tracks nothing)
+// so a truncated history is never fast-forwarded. SwitchBranch is the tracking
+// counterpart used for a full checkout.
+func (c *Client) CreateBranchNoTrack(ctx context.Context, dir string, local string, start string) error {
+	return c.run(ctx, dir, "switch", "--create", local, start, "--no-track")
+}
+
 // IsShallow reports whether dir has a truncated history.
 //
 // Asked of git rather than recorded by mudev: git owns this fact (.git/shallow),

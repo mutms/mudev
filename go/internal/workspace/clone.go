@@ -52,6 +52,11 @@ type Options struct {
 	// Out receives mudev's own progress lines. git's output goes straight to
 	// the terminal, as usual.
 	Out io.Writer
+
+	// Shallow requests a single-commit fetch of a pinned edition (a tag ref
+	// from one remote), trading its history for a much smaller checkout. It is
+	// opt-in: the default assembles the full history.
+	Shallow bool
 }
 
 // cloner carries the state of one clone run.
@@ -63,6 +68,10 @@ type cloner struct {
 	live    *Live
 	root    string
 	out     output
+
+	// shallow is the caller's --shallow request: fetch only the pinned commit
+	// where the ref allows it.
+	shallow bool
 
 	// flavour is the recipe's release flavour, resolved once up front and used
 	// for the whole run.
@@ -89,9 +98,10 @@ func Clone(ctx context.Context, opts Options) error {
 	}
 
 	c := &cloner{
-		cfg:  opts.Config,
-		root: root,
-		out:  newOutput(opts.Out),
+		cfg:     opts.Config,
+		root:    root,
+		out:     newOutput(opts.Out),
+		shallow: opts.Shallow,
 	}
 
 	if err := c.load(opts.Recipe); err != nil {
@@ -452,46 +462,28 @@ func (c *cloner) acquire(ctx context.Context, dir string, remotes map[string]str
 		return err
 	}
 
-	_, branch, isBranch := git.SplitBranchRef(ref, remotes)
+	remote, branch, isBranch := git.SplitBranchRef(ref, remotes)
 
-	// A pinned edition from a single remote needs one commit, not a decade
-	// of history: Moodle core at a release tag is ~989 MB of .git full and
-	// ~80 MB shallow. Three conditions, all of which must hold:
-	//
-	//   - the ref is a tag or commit, not a branch. A branch checkout is
-	//     something a developer works in, and log/blame there must work.
-	//   - exactly one remote. fetch_order exists for LAN mirrors, and a
-	//     shallow repository deepened from a different remote than it was
-	//     shallowed from is a bad time.
-	//   - not a release workspace. That flavour tags, edits version.php and
-	//     writes changelogs, all of which want the history and the tags.
-	//
-	// Nothing is recorded about it here: git knows (.git/shallow), and a
-	// later fetch unshallows first (see fetchRemotes). Pull never meets a
-	// shallow checkout — a shallowed pin is detached, so Pull skips it.
-	shallow := false
+	if isBranch && localbranch == "" {
+		localbranch = branch
+	}
 
-	if !isBranch && len(remotes) == 1 && c.recipe.Release() == "" {
-		for name := range remotes {
-			c.stepf("fetch %s (shallow, %s only)", name, ref)
-
-			if err := c.client.FetchShallowTag(ctx, dir, name, ref); err == nil {
-				shallow = true
-			} else {
-				// Not a tag — a commit pin, which not every server will
-				// serve shallowly. Fall through to the full fetch rather
-				// than fail: a slower assembly beats none.
-				c.out.warnf("shallow fetch of %s failed (%v) — fetching in full", ref, err)
-			}
+	// --shallow fetches only the tip of the ref, trading history for size:
+	// Moodle core at a release tag is ~989 MB of .git in full and ~80 MB
+	// shallow. It is a best effort — a remote that will not serve the ref at
+	// depth 1 falls through to a full assembly, since a slower one beats none.
+	if c.shallow {
+		if err := c.acquireShallow(ctx, dir, remote, branch, isBranch, ref, localbranch); err == nil {
+			return nil
+		} else {
+			c.out.warnf("shallow fetch of %s failed (%v) — assembling in full", ref, err)
 		}
 	}
 
-	if !shallow {
-		if err := fetchRemotes(ctx, c.client, dir, c.recipe.FetchOrder(), c.out); err != nil {
-			// Every remote is fetched, in the recipe's order — a near
-			// mirror first leaves origin with only the difference to send.
-			return err
-		}
+	if err := fetchRemotes(ctx, c.client, dir, c.recipe.FetchOrder(), c.out); err != nil {
+		// Every remote is fetched, in the recipe's order — a near mirror first
+		// leaves origin with only the difference to send.
+		return err
 	}
 
 	if !isBranch {
@@ -502,13 +494,50 @@ func (c *cloner) acquire(ctx context.Context, dir string, remotes map[string]str
 		return c.client.CheckoutDetached(ctx, dir, ref)
 	}
 
-	if localbranch == "" {
-		localbranch = branch
-	}
-
 	c.stepf("checkout %s tracking %s", localbranch, ref)
 
 	return c.client.SwitchBranch(ctx, dir, localbranch, ref)
+}
+
+// acquireShallow fetches only the tip of the ref at depth 1 and checks it out —
+// the small version of a --shallow assembly.
+//
+// A tag or commit lands detached, exactly as a full pin does. A branch becomes a
+// real, developable local branch, created --no-track: with no upstream, `mudev
+// pull` skips it (a branch with no upstream is skipped), so a shallow checkout is
+// never something pull has to fast-forward on truncated history — and `mudev
+// fetch` unshallows it first if the history is later wanted. Fetching straight
+// into refs/heads/<branch> is not an option: git refuses to fetch into the
+// branch HEAD points at, even an unborn one, so the branch tip goes to its
+// remote-tracking ref and the local branch is created from there.
+//
+// Nothing is recorded about the shallow state here: git owns it (.git/shallow),
+// and a later fetch unshallows before anything else (see fetchRemotes).
+//
+// Returns an error when the remote will not serve the ref shallowly, which is the
+// caller's cue to fall back to a full fetch.
+func (c *cloner) acquireShallow(ctx context.Context, dir string, remote string, branch string, isBranch bool, ref string, localbranch string) error {
+	if !isBranch {
+		c.stepf("fetch %s (shallow, %s only)", OriginRemote, ref)
+
+		if err := c.client.FetchShallowTag(ctx, dir, OriginRemote, ref); err != nil {
+			return err
+		}
+
+		c.stepf("checkout %s (shallow, detached)", ref)
+
+		return c.client.CheckoutDetached(ctx, dir, ref)
+	}
+
+	c.stepf("fetch %s (shallow, %s only)", remote, branch)
+
+	if err := c.client.FetchShallowBranch(ctx, dir, remote, branch); err != nil {
+		return err
+	}
+
+	c.stepf("checkout %s (shallow, no upstream)", localbranch)
+
+	return c.client.CreateBranchNoTrack(ctx, dir, localbranch, remote+"/"+branch)
 }
 
 // known reports whether this build has a handler for a release flavour.

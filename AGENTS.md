@@ -140,11 +140,12 @@ recipe untouched.
 `workspace` orchestrates it. `base.patches` is parsed but **not implemented** (MuTMS ships a
 pre-merged `patch/mutms/*` core branch); a recipe that uses it is rejected with a clear error.
 
-**Go 1.24 / dependencies.** The module targets Go 1.24, matching Debian trixie's `golang-go`,
-so `make build` never needs a toolchain download. That constrains dependencies: JSON Schema
-validation uses `github.com/google/jsonschema-go` because santhosh-tekuri's v6 pulls in
-`golang.org/x/text`, whose current releases require Go ≥ 1.25. Check a new dependency's
-minimum Go version before adding it.
+**Go toolchain / dependencies.** The `go` directive in `go/go.mod` picks the compiler.
+Go comes from upstream, not Debian: the mpd VM seeds `/usr/local/go`, and the go command
+fetches whatever newer toolchain the directive names (`GOTOOLCHAIN=auto`, set in the
+Makefile). Raise the directive on purpose, for a feature you use — not as a side effect of
+adding a dependency. JSON Schema validation uses `github.com/google/jsonschema-go` rather
+than santhosh-tekuri's v6, which pulls in `golang.org/x/text` and its higher Go floor.
 
 **Single exec gateway (mandatory).** `internal/exec` is the only package that may import
 `os/exec` or otherwise spawn a process. `git`, `moodle`, and anything else that shells out
@@ -154,8 +155,8 @@ uniformly testable and consistent, and makes a future mpd→Go port map onto the
 ## Reference
 
 - mudev is meant to be built in the mpd VM, not inside a runtime container: `mpd --vm-setup`
-  clones this repo to `/opt/mudev` and runs `make install`. The VM has `golang-go`
-  (Debian 13 trixie, Go 1.24) and `make`; runtime containers deliberately have neither,
+  clones this repo to `/opt/mudev` and runs `make install`. The VM has Go (upstream,
+  in `/usr/local/go`) and `make`; runtime containers deliberately have neither,
   and get `/opt/mudev` bind-mounted read-only instead, so every runtime shares the one
   binary. Rebuild after editing: `cd /opt/mudev && make install`.
 

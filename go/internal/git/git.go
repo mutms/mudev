@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/mutms/mudev/go/internal/config"
@@ -229,6 +230,43 @@ func (c *Client) Unshallow(ctx context.Context, dir string, remote string) error
 // twenty checkouts is the worst possible place to make that decision silently.
 func (c *Client) Pull(ctx context.Context, dir string) error {
 	return c.run(ctx, dir, "pull", "--ff-only")
+}
+
+// Push sends a local branch to a branch of the same or another name on remote.
+//
+// Both sides are spelled as full refs, so a branch name that happens to match a
+// tag cannot be mistaken for it, and a checkout whose local branch is named
+// differently from the remote one (a recipe's localbranch) still lands where
+// the recipe says it belongs. Nothing is forced: a remote that has moved on
+// rejects the push, and that is for a human to resolve.
+func (c *Client) Push(ctx context.Context, dir string, remote string, local string, branch string) error {
+	return c.run(ctx, dir, "push", remote, "refs/heads/"+local+":refs/heads/"+branch)
+}
+
+// Unpushed counts the commits on a local branch that the remote-tracking
+// branch <remote>/<branch> does not have. The answer is only as fresh as the
+// last fetch — push itself is the authority on what the remote accepts.
+//
+// known is false when there is no such remote-tracking branch: a branch the
+// remote has never seen, where everything is unpushed.
+func (c *Client) Unpushed(ctx context.Context, dir string, local string, remote string, branch string) (count int, known bool, err error) {
+	tracking := "refs/remotes/" + remote + "/" + branch
+
+	if _, err := c.optional(ctx, dir, "rev-parse", "--verify", "-q", tracking); err != nil {
+		return 0, false, nil
+	}
+
+	out, err := c.capture(ctx, dir, "rev-list", "--count", tracking+"..refs/heads/"+local)
+	if err != nil {
+		return 0, true, err
+	}
+
+	count, err = strconv.Atoi(strings.TrimSpace(out))
+	if err != nil {
+		return 0, true, fmt.Errorf("unexpected rev-list output %q", out)
+	}
+
+	return count, true, nil
 }
 
 // OnBranch reports the branch HEAD is on. A detached HEAD — how a pinned

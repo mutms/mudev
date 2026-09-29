@@ -52,6 +52,7 @@ func newRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newListCmd(s))
 	cmd.AddCommand(newFetchCmd(s))
 	cmd.AddCommand(newPullCmd(s))
+	cmd.AddCommand(newPushCmd(s))
 	cmd.AddCommand(newRecipeCmd(s))
 	cmd.AddCommand(newStatusCmd(s))
 	cmd.AddCommand(newProductionCmd(s))

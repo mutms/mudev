@@ -11,6 +11,7 @@ workspace workflow.
 | `status [git args…]`            | git status, only where there is something to report               |
 | `fetch`                         | every remote of every checkout, in the recipe's order             |
 | `pull`                          | `git pull --ff-only` everywhere; stops at a divergence            |
+| `push`                          | push plugins to origin — never core, only on the recorded branch  |
 | `recipe init`                   | reconstruct `.mudev.json` from the checkouts already in the tree  |
 | `recipe update <relpath>`       | fold one checkout's current state into `.mudev.json`              |
 | `recipe add <plugin>`           | check a plugin out and record it                                  |
@@ -80,6 +81,7 @@ mudev status           # only the checkouts with something to report
 mudev status -s        # …arguments go straight to git
 mudev fetch            # every remote of every checkout, with tags
 mudev pull             # git pull --ff-only in every checkout
+mudev push             # unpushed plugin commits to origin
 ```
 
 `status` shows a checkout when it has uncommitted changes or unpushed commits, and counts the
@@ -91,6 +93,12 @@ checkout's git output. `pull` accepts fast-forwards only: a checkout that has di
 run right there, so you fix that one repository and run it again — nothing after it was touched.
 Checkouts with nothing to pull into (a pinned edition is detached; a new branch may have no
 upstream) are skipped rather than treated as failures.
+
+`push` sends each plugin to the branch on `origin` the recipe recorded for it, and leaves Moodle
+core alone — its patched base branch is pushed by hand, if ever. A plugin sitting on any other
+branch (a feature branch, a detached HEAD) or not recorded in the recipe at all is reported with
+a notice and not pushed. Plugins with nothing to push are only counted, and nothing is forced: a
+push the remote rejects stops the run there.
 
 ## Adding a plugin by hand
 

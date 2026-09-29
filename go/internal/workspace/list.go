@@ -50,9 +50,15 @@ type Repo struct {
 	Missing bool
 
 	// RecordedRef is the ref the live recipe says this checkout is on;
-	// RecordedBranch is its branch part, when the ref names a branch.
+	// RecordedBranch is the local branch that implies, when the ref names a
+	// branch (the recipe's localbranch, if it set one).
 	RecordedRef    string
 	RecordedBranch string
+
+	// RecordedRemoteBranch is the branch part of RecordedRef as the remote
+	// knows it — where push sends RecordedBranch. It differs from
+	// RecordedBranch only when the recipe sets a localbranch.
+	RecordedRemoteBranch string
 
 	// Status is the live git state; zero for a missing checkout.
 	Status git.Status
@@ -203,6 +209,7 @@ func recordedRepos(root string) (map[string]*Repo, []string, error) {
 	if gs, err := live.Base.GitSource(); err == nil {
 		core.RecordedRef = gs.Ref
 		core.RecordedBranch = recordedBranch(gs.Ref, gs.Remotes, live.Base.Localbranch)
+		core.RecordedRemoteBranch = branchOf(gs.Ref, gs.Remotes)
 	}
 
 	repos[CoreDir] = core
@@ -224,6 +231,7 @@ func recordedRepos(root string) (map[string]*Repo, []string, error) {
 
 		if entry.Source != nil && entry.Source.Git != nil {
 			repo.RecordedBranch = recordedBranch(entry.Ref(), entry.Source.Git.Remotes, entry.Localbranch)
+			repo.RecordedRemoteBranch = branchOf(entry.Ref(), entry.Source.Git.Remotes)
 		}
 
 		repos[relpath] = repo

@@ -120,7 +120,7 @@ go/
                  live.go     .mudev.json (the live recipe)
                  list.go     enumerate a tree; columns.go renders it
                  fanout.go   run git across every checkout (fetch, pull, status)
-                 add/prune/set/export.go — one file each, on top of the above
+                 add/prune/set/export/push.go — one file each, on top of the above
     cli/       cobra commands (one file per command)
   schema/      plugin.schema.json, recipe.schema.json + the go:embed that carries them
                (go:embed cannot reach outside its own directory, so the embed lives here

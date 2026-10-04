@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/mutms/mudev/main/schema/recipe.schema.json",
+  "$id": "https://raw.githubusercontent.com/mutms/mudev/main/go/schema/recipe.schema.json",
   "title": "mudev recipe",
   "description": "A Moodle site definition: core (+ optional patches) and a selection of plugins. The same schema validates a source recipe (mdl-recipes/<vendor>/<name>.yaml) and the resolved live recipe written to a checkout's .mudev.json — the latter fully flattened: every plugin's catalogue definition (relpath, source, requirements, ...) merged inline with the checked-out ref (a branch for a dev workspace, or a tag/commit for a pinned edition), so it needs no plugins directory or catalog.",
   "type": "object",

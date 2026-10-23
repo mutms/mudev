@@ -18,6 +18,7 @@ workspace workflow.
 | `recipe prune`                  | forget plugins whose directories are gone                         |
 | `recipe set <key> <value>`      | name the workspace                                                |
 | `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
+| `production export <x.tgz>`     | pack the committed workspace into a deployable tarball            |
 | `camp init [relpath]`           | write camp listing manifests into the plugin checkouts            |
 
 ## Configuration
@@ -47,7 +48,7 @@ git config --global url."git@github.com:".insteadOf "https://github.com/"
 ```sh
 ssh mpd-NNN -A
 mkdir -p /srv/projects/mutms52 && cd /srv/projects/mutms52   # mudev never creates the directory,
-mudev clone mutms/release/5.2.2.01                           # so it keeps your owner/permissions
+mudev clone mutms/dev/5.2                                    # so it keeps your owner/permissions
 ```
 
 `clone` takes either a catalogue identifier (`vendor/stream/version`) or a path to a recipe
@@ -56,6 +57,11 @@ repository at its place in the tree, excluded in the surrounding repo so `git st
 clean. What it did is recorded step by step in `.mudev.json` (the *live recipe*), and the
 command is idempotent: run it again to resume an interrupted clone, or to pick up plugins the
 recipe has gained since.
+
+For a MuTMS release, clone the `release` edition (`mudev clone mutms/release/5.2.4.01`). It is
+one repository at a release tag, with every plugin already merged in, so you get a single
+checkout instead of one per plugin. `--shallow` fetches only the tip commit, not the history —
+useful in CI; a later `mudev fetch` fetches the rest.
 
 ## Daily driver
 
@@ -68,7 +74,7 @@ mudev list --columns path,state,recorded
 .                                      *     MOODLE_502_STABLE...origin/*  2026071600.00  5.2.2+
 public/admin/tool/certificate                MOODLE_502_STABLE...origin/*  2026042100     5.0.8
 public/admin/tool/mulib                1↑ ≠  MDL-1234-fix...origin/MOOD…   2026060550     v5.0.9.01
-public/admin/tool/mutenancy                  (detached)                    2026060552     v5.2.2.01  v5.2.2.01
+public/admin/tool/mutenancy            2↓    MOODLE_502_STABLE...origin/*  2026060552     v5.2.4.01
 public/admin/tool/scratch              ?     master
 ```
 
@@ -121,7 +127,7 @@ and Moodle checks dependencies at install time anyway.
 Removing one goes the other way round — you delete it, mudev catches up:
 
 ```sh
-rm -rf admin/tool/mulib
+rm -rf public/admin/tool/mulib
 mudev recipe prune
 ```
 
@@ -141,7 +147,7 @@ say who is asked first:
 
 ```yaml
 extra:
-  mudev: {release: mutms, fetch_order: [backup, origin]}
+  mudev: {fetch_order: [backup, origin]}
 ```
 
 Git objects are content-addressed, so priming from the near copy leaves the remote over the
@@ -167,7 +173,7 @@ the recipe this workspace was adapted from, so it is deliberately not editable.
 
 ## Adopting a tree you already have
 
-A tree assembled by hand — or by the old PHP tool — has the checkouts but no `.mudev.json`, so
+A tree assembled by hand has the checkouts but no `.mudev.json`, so
 mudev does not yet know it as a workspace. `recipe init` reconstructs the live recipe from what
 is on disk, and from then on `list`, `status`, `fetch`, `pull` and `recipe export` all work:
 
@@ -225,3 +231,29 @@ Plugins come out in assembly order, which is the order `.mudev.json` records the
 orders them by `relpath` instead — how you look a plugin up in a long recipe, and what makes two
 exports of the same plugins diff cleanly however each tree was put together. It changes only what
 is written; the workspace's own record keeps its order.
+
+## Packing a deployable tree
+
+```sh
+mudev production export /tmp/mysite.tgz      # .tgz or .tar.gz required
+```
+
+`production export` packs the committed state of every checkout the live recipe records, at its
+real path, into one tarball. Repositories not recorded in `.mudev.json` are left out. The tree
+must be clean: uncommitted changes in any recorded checkout stop the run before anything is
+built. On Moodle 5.1+ (`public/` layout) it runs
+`composer install --no-dev --classmap-authoritative` at the tree root first.
+
+## Listing plugins on camp
+
+```sh
+mudev camp init                              # every recorded plugin
+mudev camp init public/admin/tool/mulib      # one plugin
+```
+
+`camp init` writes a [camp](https://camp-registry.org) listing manifest (`.camp/listing.yml`)
+into each plugin checkout, ready to commit, and adds camp's export-ignore rules to
+`.gitattributes`. The content comes from the plugin itself: its `pluginname` string, its
+README's opening line, and links from its `origin` remote. Forks are skipped. An existing
+manifest is never overwritten — edit it by hand; `--force` regenerates it. `--labels` sets the
+disclosure labels and `--no-badges` leaves out the badge; see `mudev camp init --help`.

@@ -1,6 +1,6 @@
 module github.com/mutms/mudev/go
 
-go 1.24
+go 1.27.3
 
 require (
 	github.com/google/jsonschema-go v0.4.3

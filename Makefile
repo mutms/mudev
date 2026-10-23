@@ -11,14 +11,10 @@ INSTALL_DIR := $(HOME)/.local/bin
 VERSION := $(shell git -C $(CURDIR) describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X main.version=$(VERSION)
 
-# Go comes from upstream, not Debian: the mpd VM installs a pinned release
-# into /usr/local/go as the seed.
-#
 # The `go` directive in go.mod picks the compiler: the go command fetches
-# that toolchain itself when the seed is older (GOTOOLCHAIN=auto, the
-# default). Set here rather than left implicit, so a Debian-packaged go —
-# which defaults to `local` — builds the same way. Raise the directive on
-# purpose, for a feature you use.
+# that toolchain itself when the installed go is older. Set explicitly so
+# every installed go builds the same way. Raise the directive on purpose,
+# for a feature you use.
 export GOTOOLCHAIN = auto
 
 .PHONY: build install uninstall build-static test vet fmt fmt-check tidy clean

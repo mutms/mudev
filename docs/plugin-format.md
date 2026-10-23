@@ -13,8 +13,7 @@ e.g. identifier `mutms/tool_mulib` → `/srv/extra/mdl-plugins/mutms/tool_mulib.
 This is a **public, tool-neutral catalogue**: it holds generic, stable facts about a plugin.
 It is consumed by mudev (git assembly), by a future composer-based site assembler, and
 eventually by a plugins catalogue website. So it must not carry anything that is mutable or
-specific to one consumer's workflow — e.g. *whether you tag/release a plugin lives in a
-recipe, not here* (see `recipe-format.md`).
+specific to one consumer's workflow — that belongs in a recipe (see `recipe-format.md`).
 
 ## Example
 
@@ -52,7 +51,7 @@ requirements:
 | `homepage`        | no  | Project homepage.                                                                                                                                                                                                                                                                                                        |
 | `license`         | no  | SPDX id, e.g. `GPL-3.0-or-later`.                                                                                                                                                                                                                                                                                        |
 | `contributed_by`  | no  | Credit party (name or list). The catalogue is CC0 — keeping this credit on reuse is a courtesy, not a condition.                                                                                                                                                                                                                        |
-| `requirements`    | yes | Per-git-branch support + dependencies, keyed by git branch. Each entry has `mdlbranches` (the Moodle `$branch` codes that branch serves) and optional `plugins` (dependency identifiers). Merges the old `supported` + `require`. See Branch resolution.                                                                 |
+| `requirements`    | yes | Per-git-branch support + dependencies, keyed by git branch. Each entry has `mdlbranches` (the Moodle `$branch` codes that branch serves) and optional `plugins` (dependency identifiers). See Branch resolution.                                                                                                         |
 
 The schema is intentionally **open** (`additionalProperties: true`) so a catalogue website can add
 presentation metadata without breaking mudev. mudev only acts on the functional fields (`name`,
@@ -136,9 +135,8 @@ One Moodle version maps to exactly one branch, and the union of all `mdlbranches
 plugin's compatibility declaration.
 
 Keying by git branch collapses the many-to-one that a per-code list would repeat
-(`500`/`501`/`502` all under `MOODLE_500_STABLE`) and — the reason `requirements` merges the old
-`supported` + `require` — lets **dependencies vary per branch**, since a dep is a property of a
-branch, not of the plugin globally. The numeric `mdlbranch` codes stay **values** inside
+(`500`/`501`/`502` all under `MOODLE_500_STABLE`) and lets **dependencies vary per branch**,
+since a dep is a property of a branch, not of the plugin globally. The numeric `mdlbranch` codes stay **values** inside
 `mdlbranches`, never object keys, because numeric object keys are unsafe across languages (JS
 reorders them, PHP coerces them to ints); the keys here are branch *names*, which are safe strings.
 

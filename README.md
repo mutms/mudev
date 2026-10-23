@@ -19,8 +19,28 @@ something else.
 - **CI** — automated test pipelines use the standalone mudev binary to build the Moodle site
   trees that plugins are tested against.
 
-mudev runs on Linux only, and it is not meant for production servers — it prepares code for
-development, demos and testing.
+mudev runs on Linux only. It prepares code for development, demos and testing; it does not run
+on production servers itself.
+
+## Installing it
+
+On an mpd VM there is nothing to install: mudev and both catalogues are already there.
+
+Anywhere else on Linux:
+
+1. Download the binary for your architecture (`linux-amd64` or `linux-arm64`) from
+   [the releases page](https://github.com/mutms/mudev/releases) and put it on your `PATH` as
+   `mudev`.
+2. Clone the two catalogues side by side:
+
+   ```sh
+   sudo install -d -o "$USER" /srv/extra
+   git clone https://github.com/mutms/mdl-plugins.git /srv/extra/mdl-plugins
+   git clone https://github.com/mutms/mdl-recipes.git /srv/extra/mdl-recipes
+   ```
+
+   mudev looks there by default. To keep them somewhere else, set `MUDEV_PLUGINS_DIRECTORY`
+   and `MUDEV_RECIPES_DIRECTORY` (see [docs/usage.md](docs/usage.md#configuration)).
 
 ## Using it yourself
 
@@ -31,12 +51,13 @@ plugin checked out at its place:
 
 ```sh
 mkdir -p /srv/projects/mutms52 && cd /srv/projects/mutms52
-mudev clone mutms/release/5.2.2.01
+mudev clone mutms/release/5.2.4.01
 ```
 
 The recipe is either a catalogue identifier (`vendor/stream/version`) or a path to a recipe
-file. `clone` is idempotent — run it again to resume an interrupted clone or to pick up plugins
-the recipe has gained.
+file. [Browse the available recipes](https://github.com/mutms/mdl-recipes). `clone` is
+idempotent — run it again to resume an interrupted clone or to pick up plugins the recipe has
+gained. Add `--shallow` when you only need the code, not the git history (for example in CI).
 
 **Add a plugin** to a workspace you already have, and it lands at the right place on the right
 branch for that Moodle:
@@ -46,7 +67,8 @@ mudev recipe add mutms/tool_mulib
 ```
 
 From there mudev manages the whole set of checkouts as one workspace — listing their state,
-fetching, pulling, exporting a portable recipe, and more. **See [docs/usage.md](docs/usage.md)
+fetching, pulling, pushing, exporting a portable recipe, packing a deployable `.tgz`
+(`mudev production export`), and more. **See [docs/usage.md](docs/usage.md)
 for the full command reference and git workflow.**
 
 ## Catalogues
@@ -60,7 +82,7 @@ credit is a courtesy, not a condition.
   plugin is: where it installs, where the code is, which git branch serves which Moodle
   version. Identifier `mutms/tool_mulib`.
 - [mdl-recipes](https://github.com/mutms/mdl-recipes) — `<vendor>/<stream>/<version>.yaml`,
-  what a site is. Identifier `mutms/release/5.2.2.01`.
+  what a site is. Identifier `mutms/release/5.2.4.01`.
 
 A recipe does not have to come from a catalogue at all: `mudev clone ./mysite.yaml` takes a
 self-contained file, which is what `mudev recipe export` produces.

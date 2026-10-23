@@ -14,24 +14,19 @@ Two levels below the vendor: a **stream** and a **version**.
 - `dev/` is the single rolling **workspace** stream — one full dev tree per Moodle version,
   always the complete plugin set (no partial dev). Files are named by Moodle version:
   `mutms/dev/5.2`, `mutms/dev/4.5`. The `mdlbranch` code lives inside the file.
-- **Release** streams are **editions** — always **pinned** (never rolling branches; a rolling
-  edition is useless, end users take a fixed release and upgrade via composer or a future
-  mudev `switch`/`upgrade`). Files are named by the release version
-  `<moodle-point-release>.<mutms-increment>`, e.g. `mutms/moodle/4.5.12.01` (built on Moodle
-  4.5.12, MuTMS increment 01). Editions so far:
-  - `release` — full MuTMS: patched core + multi-tenancy, all plugins.
-  - `moodle` — MuTMS without core Moodle changes and no multi-tenancy support (stock Moodle
-    core; tenancy plugins omitted).
-  - `programs` — programs/learning subset, e.g. for demoing MuTMS Programs to clients.
+- **Release** streams are **editions** — always **pinned** to a tag, never a rolling branch.
+  Files are named by the release version `<moodle-point-release>.<mutms-increment>`, e.g.
+  `mutms/release/5.2.4.01` (built on Moodle 5.2.4, MuTMS increment 01). Editions so far:
+  - `release` — full MuTMS: patched core + multi-tenancy, all plugins. **This is the
+    recommended release recipe.** It names one repository,
+    `https://github.com/mutms/mutms.git`, at a release tag (`MuTMS-5.2.4-01`), with every
+    plugin already merged in as a git subtree — so `plugins: []`, and nothing is pinned per
+    plugin.
+  - `moodle` — MuTMS plugins on stock Moodle core, without multi-tenancy.
 
-  **Per-plugin refs are heterogeneous** — a plugin's release tag depends on *its* branch, not
-  the recipe's Moodle version. On Moodle 5.2, `tool_mulib` is pinned to `v5.0.9.01` (its
-  `MOODLE_500_STABLE` branch serves 5.0/5.1/5.2) while `tool_mutenancy` is `v5.2.2.01` (it has
-  a dedicated `MOODLE_502_STABLE` branch).
-
-Besides `mutms/`, a **`moodle/` vendor** holds plain, plugin-less Moodle base recipes
-(`moodle/release/5.2.2` → stock core at `v5.2.2`, `plugins: []`) — a clean base and a nod to
-mudev's longer-term general-Moodle goal.
+Besides `mutms/`, the catalogue holds plugin-less base recipes for other distributions:
+`moodle/` (stock core, e.g. `moodle/release/5.2.4` → `v5.2.4`) and `iomad/` (IOMAD dev
+branches). Both use `plugins: []`.
 
 The same schema also validates the **live recipe** — a single, self-contained `/.mudev.json` at
 the project root. Every plugin reference is **fully flattened**: at clone/install time mudev
@@ -60,8 +55,6 @@ already in a tree** (see below).
 # yaml-language-server: $schema=https://raw.githubusercontent.com/mutms/mudev/main/go/schema/recipe.schema.json
 name: MuTMS dev on Moodle 5.2
 catalog: ../../../mdl-plugins       # where bare-name references resolve (relative to this file)
-extra:
-  mudev: {release: mutms}          # release workspace — enables tag + version.php + changelog, using the `mutms` flavour
 base:
   mdlbranch: "502"                   # Moodle $branch code (quoted string) — drives branch resolution
   source:                            # same shape as a plugin source (acquisition methods by kind)
@@ -74,11 +67,9 @@ base:
   # patches:                         # optional EXTRA patches merged over ref, in order
   #   - { repo: https://github.com/mutms/patches.git, ref: patch/mutest/MOODLE_502_STABLE }
 plugins:
-  - name: mutms/tool_mulib           # reference (branch auto-resolved from the catalogue)
-    extra: {mudev: {release: mutms}} # release-managed under the `mutms` flavour
-  - name: mutms/tool_mutenancy       # reference pinned to a tag
-    source: {git: {ref: v5.2.2.01}}  #   version lives in source.git.ref (remotes from catalogue)
-  - mutms/tool_certificate           # bare reference (not release-managed)
+  - mutms/tool_mulib                # bare reference (branch auto-resolved from the catalogue)
+  - name: mutms/tool_mutenancy       # reference with an explicit ref
+    source: {git: {ref: origin/MOODLE_502_STABLE}}   # remotes still come from the catalogue
 ```
 
 ## Fields
@@ -89,7 +80,7 @@ plugins:
 | `contributed_by`     | no  | Credit party (name or list); also asserts recipe authorship. Catalogues are CC0 — keeping it on reuse is a courtesy, not a condition. In a live recipe, this is the *project owner*.                                         |
 | `based_on_recipe`    | no  | Live-recipe only: what `clone` was given — a catalogue identifier *or* a recipe file path (provenance); also the courtesy credit to a catalogue source (see below).                                                          |
 | `catalog`            | no  | Where bare-name references resolve; path relative to the file, or absolute. Defaults to `MUDEV_PLUGINS_DIRECTORY`.                                                                                                           |
-| `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.release` = release flavour. See below.                                                                                                        |
+| `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.fetch_order` = which remote is fetched first. See below.                                                                                      |
 | `base.mdlbranch`     | yes | Moodle `$branch` code (e.g. `502`). Drives plugin-branch resolution.                                                                                                                                                         |
 | `base.source`        | yes | How to acquire Moodle core — same shape as a plugin `source` (kinds by key; see below). Normally `git`: `git.remotes.origin` is the clone remote (name → URL) and `git.ref` is what to check out.                            |
 | `base.localbranch`   | no  | Local branch name to create from a branch `source.git.ref` (default = the remote branch name). Lives *outside* `source`. See Refs.                                                                                           |
@@ -107,11 +98,6 @@ Each entry is one of:
 3. **Inline definition** — the full plugin spec (any plugin field) plus `source`/`localbranch`/`extra`,
    so the recipe is self-contained and needs no catalogue. The entry's own fields match the plugin
    data model; mudev flags stay in `extra`.
-
-Per-plugin release state lives in `extra.mudev` (e.g. `{release: mutms}`) — **owner state**:
-hand-authored in a source recipe, and mudev-managed in the checkout's `.mudev.json` (set via mudev,
-not by hand); never in the public plugin catalogue. It marks which plugins are release-managed; it
-is gated by the recipe-level `extra.mudev.release`.
 
 ## Refs — `source.git.ref`, remote, and local branch name
 
@@ -155,57 +141,16 @@ what the catalogue would resolve, made explicit.)
 so a tool extends recipes without any schema change.
 
 **`extra.mudev` is the exception: it is defined, and closed.** mudev owns that namespace, so the
-schema types every key it reads (`release` a string, `fetch_order` a list of strings) and rejects
+schema types every key (`release` a string, `fetch_order` a list of strings) and rejects
 anything else. A mistyped `fetchorder:` or `releases:` would otherwise be a setting that silently
 does nothing — which is the worst kind of mistake, because the tool keeps working and just ignores
 you. The schema and the binary ship together, so a new mudev key arrives with the version that
 reads it; anyone else reusing this format writes their own `extra.<tool>` namespace, which the
 schema does not constrain.
 
-mudev reads two keys. First `extra.mudev.release`, in the config precedence chain:
-
-> **flag > env var > recipe `extra.mudev` > built-in default**
-
-`release` is a **flavour name** (a string), never a bare boolean:
-
-The two levels do different jobs:
-
-- Recipe-level `extra.mudev.release: <flavour>` — names **what project this workspace is**. It
-  makes the tree a **release workspace** under that flavour's rules (tag + `version.php`
-  `$version`/`$release` + changelog). It says nothing about how the repositories are reached:
-  a workspace you push from names `git@…` remotes because that is what you want, not because a
-  flag inferred it.
-- Plugin-level `extra.mudev.release: <flavour>` — **selects which plugins are released**. Its
-  presence flags the plugin in; its absence leaves the plugin in the tree but unreleased. The
-  flavour it names **must match the recipe level** (see single-flavour rule below) — that match is
-  a consistency check; the plugin flag's real payload is its presence.
-
-The flavour names a versioning/tagging ruleset that mudev applies. mudev ships the built-in
-`mutms` flavour; another project reuses this format with its own — `release: acme` — and mudev
-applies that flavour's handler. A flavour mudev doesn't know is **not** an error: the plugin still
-clones and assembles normally, but its **release subcommands are unavailable** (no tag / no
-`version.php` bump / no changelog) and mudev prints a warning naming the unknown flavour. So a
-recipe referencing a foreign flavour stays fully usable for build/consume and per-plugin git work;
-only its release automation is inert until that flavour's handler exists.
-
-**One flavour per recipe.** The recipe-level `extra.mudev.release` is authoritative for the whole
-workspace — a release tree has exactly one flavour. A plugin is release-managed only if its own
-`extra.mudev.release` **equals** the recipe-level flavour. A plugin that names a *different*
-flavour is **not** treated as that other flavour: mudev **ignores** the plugin's release flag
-(the plugin is left unmanaged) and warns, naming the mismatch. This is deliberate — mixing tagging
-rulesets in one tree produces silent, hard-to-unwind messes, so the divergent flag is dropped
-rather than honoured. (A plugin release flag with no recipe-level release at all is likewise
-inert: no release workspace, nothing to manage.)
-
-Release needs a resolved flavour handler, so a release subcommand (`mudev release` / `tag` / …)
-**errors whenever there is no handler** — either because the recipe declares no flavour (*"not a
-release workspace"*) or because it names one mudev doesn't know (*"unknown flavour"*). The command
-refuses rather than guessing a tagging scheme; only clone / assembly / plain git keep working.
-
-Absent `extra.mudev.release`, a recipe is **build/consume**: nothing to tag, nothing to version.
-So dev workspaces set `extra.mudev: {release: mutms}`; editions omit `extra` entirely. A live
-recipe carries whichever matches that checkout. Other consumers (composer assembler, catalogue
-site) use their own `extra.<tool>` namespace.
+mudev reads one key, `fetch_order` (below). The schema also accepts `release`, reserved for
+release tooling that this version does not include; mudev only warns when the name is not one
+it knows.
 
 ## Remote URLs and credentials
 
@@ -234,7 +179,7 @@ recipe has nothing but `origin`, so the rule costs it nothing.
 
 ```yaml
 extra:
-  mudev: {release: mutms, fetch_order: [backup, origin]}
+  mudev: {fetch_order: [backup, origin]}
 ```
 
 Git objects are content-addressed, so this is not cosmetic. Fetching a **mirror on the local
@@ -285,7 +230,7 @@ Then:
 
 `init` is the reverse of `clone`: where clone reads a recipe and produces checkouts, init reads
 the checkouts and produces the recipe. It is for a tree that already holds the code — assembled by
-hand, or by the old PHP tool — but has no `.mudev.json`, so mudev does not yet know it as a
+hand — but has no `.mudev.json`, so mudev does not yet know it as a
 workspace. It **changes no working tree**; it only reads git state and writes the record.
 
 1. Read core at the root: try `public/version.php` (5.1+), then `version.php` (older, which sets
@@ -356,5 +301,5 @@ credit for the source recipe in two layers rather than by copying the source's
 
 Relative paths inside a recipe (`catalog`, a local `source.git.remotes.*` URL) are anchored to the **directory
 of the recipe file**, then made absolute. With the `<vendor>/<stream>/` grouping, reaching
-sibling catalogues under `/opt` needs `../../../` (e.g. `mdl-recipes/mutms/dev/5.2.yaml` →
+sibling catalogues under `/srv/extra` needs `../../../` (e.g. `mdl-recipes/mutms/dev/5.2.yaml` →
 `../../../mdl-plugins`).

@@ -54,7 +54,7 @@
     },
     "extra": {
       "type": "object",
-      "description": "Tool-namespaced extension config (composer-style). Each key is a tool name; its value is that tool's own config, opaque to this schema — so tools extend recipes without schema churn. Present at the recipe top level and on each plugin entry. mudev reads two keys. `extra.mudev.release`: a flavour name (string). Recipe-level `release: <flavour>` marks a release workspace under that flavour's rules (tag + version.php $version/$release + changelog); plugin-level `release: <flavour>` marks the plugin release-managed. Absent = read-only build/consume. `extra.mudev.fetch_order`: a list of remote names contacted first, in that order, e.g. [backup, origin] — mudev fetches EVERY remote of every checkout, and this decides who is asked first, so a mirror on the local network fills the object store and leaves the slow remote only the difference to send. Remotes not listed are still fetched, after the listed ones; names a given checkout lacks are skipped. Future consumers (composer assembler, catalogue site) use their own `extra.<tool>` namespace.",
+      "description": "Tool-namespaced extension config (composer-style). Each key is a tool name; its value is that tool's own config, opaque to this schema — so tools extend recipes without schema churn. Present at the recipe top level and on each plugin entry. mudev reads one key, `extra.mudev.release`: a flavour name (string). Recipe-level `release: <flavour>` marks a release workspace under that flavour's rules (tag + version.php $version/$release + changelog); plugin-level `release: <flavour>` marks the plugin release-managed. Absent = read-only build/consume. `extra.mudev.fetch_order` is deprecated and ignored. Future consumers (composer assembler, catalogue site) use their own `extra.<tool>` namespace.",
       "additionalProperties": true,
       "properties": {
         "mudev": {
@@ -68,7 +68,7 @@
             },
             "fetch_order": {
               "type": "array",
-              "description": "Remote names to fetch first, in this order, e.g. [forge, origin]. Must be a LIST, not a comma-separated string. mudev fetches every remote of every checkout; this only decides who is asked first, so a mirror on the local network fills the object store and leaves the slow remote only the difference to send. Unlisted remotes are still fetched afterwards; names a given checkout does not have are skipped.",
+              "description": "DEPRECATED and ignored. Was the remote fetch order; mudev now fetches origin first and the rest alphabetically, and speeds up Moodle core with the local mirror /srv/extra/moodle.git. Still accepted so live recipes of existing workspaces load; mudev drops it when it rewrites them.",
               "items": {
                 "type": "string",
                 "minLength": 1
@@ -168,7 +168,7 @@
                       },
                       "fetch_order": {
                         "type": "array",
-                        "description": "Remote names to fetch first, in this order, e.g. [forge, origin]. Must be a LIST, not a comma-separated string. mudev fetches every remote of every checkout; this only decides who is asked first, so a mirror on the local network fills the object store and leaves the slow remote only the difference to send. Unlisted remotes are still fetched afterwards; names a given checkout does not have are skipped.",
+                        "description": "DEPRECATED and ignored. Was the remote fetch order; mudev now fetches origin first and the rest alphabetically, and speeds up Moodle core with the local mirror /srv/extra/moodle.git. Still accepted so live recipes of existing workspaces load; mudev drops it when it rewrites them.",
                         "items": {
                           "type": "string",
                           "minLength": 1

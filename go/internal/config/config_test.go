@@ -72,3 +72,27 @@ func TestAnchorUsesTheFilesDirectory(t *testing.T) {
 		t.Errorf("Anchor = %q, want %q", got, want)
 	}
 }
+
+func TestMoodleMirrorOffSwitch(t *testing.T) {
+	c := Defaults()
+	if c.MoodleMirror != DefaultMoodleMirror || c.MoodleUpstream != MoodleUpstream {
+		t.Fatalf("defaults = %+v", c)
+	}
+
+	// Anything but 0 keeps the mirror.
+	t.Setenv(EnvMoodleMirror, "1")
+	if err := ApplyEnv(&c); err != nil {
+		t.Fatal(err)
+	}
+	if c.MoodleMirror != DefaultMoodleMirror {
+		t.Errorf("MoodleMirror = %q, want default", c.MoodleMirror)
+	}
+
+	t.Setenv(EnvMoodleMirror, "0")
+	if err := ApplyEnv(&c); err != nil {
+		t.Fatal(err)
+	}
+	if c.MoodleMirror != "" {
+		t.Errorf("MoodleMirror = %q, want disabled", c.MoodleMirror)
+	}
+}

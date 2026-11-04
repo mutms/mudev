@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mutms/mudev/go/internal/config"
 	"github.com/mutms/mudev/go/internal/exec"
 	"github.com/mutms/mudev/go/internal/git"
 )
@@ -92,7 +91,7 @@ func assembledFixture(t *testing.T) (root string, target string) {
 
 func exportInto(root string, target string) error {
 	return ProductionExport(context.Background(), ProductionExportOptions{
-		Config: config.Defaults(),
+		Config: testConfig(),
 		Root:   root,
 		Target: target,
 		Out:    io.Discard,

@@ -121,7 +121,7 @@ func TestRecordedRepos(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	recorded, _, err := recordedRepos(root)
+	recorded, err := recordedRepos(root)
 	if err != nil {
 		t.Fatalf("recordedRepos: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestRecordedReposStripsPublicForOlderMoodle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	recorded, _, err := recordedRepos(root)
+	recorded, err := recordedRepos(root)
 	if err != nil {
 		t.Fatalf("recordedRepos: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestRecordedReposStripsPublicForOlderMoodle(t *testing.T) {
 func TestRecordedReposWithoutLiveRecipe(t *testing.T) {
 	// A directory that is not a mudev workspace still lists its checkouts;
 	// they are simply all unmanaged.
-	recorded, _, err := recordedRepos(t.TempDir())
+	recorded, err := recordedRepos(t.TempDir())
 	if err != nil {
 		t.Fatalf("recordedRepos: %v", err)
 	}

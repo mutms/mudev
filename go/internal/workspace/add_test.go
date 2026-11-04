@@ -116,7 +116,7 @@ func addInto(t *testing.T, root string, pluginsDir string, name string, ref stri
 func addWithOutput(t *testing.T, root string, pluginsDir string, name string, ref string, out io.Writer) error {
 	t.Helper()
 
-	cfg := config.Defaults()
+	cfg := testConfig()
 	cfg.PluginsDir = pluginsDir
 
 	return Add(context.Background(), AddOptions{

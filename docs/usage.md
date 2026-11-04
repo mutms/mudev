@@ -33,6 +33,9 @@ There are two settings, and each resolves **flag > environment > built-in defaul
 | `MUDEV_PLUGINS_DIRECTORY` | `--plugins-dir` | `/srv/extra/mdl-plugins` | plugin catalogue |
 | `MUDEV_RECIPES_DIRECTORY` | `--recipes-dir` | `/srv/extra/mdl-recipes` | recipe catalogue |
 
+`MUDEV_MOODLE_MIRROR=0` stops mudev creating, refreshing and using the local Moodle mirror
+(see [The local Moodle mirror](#the-local-moodle-mirror)).
+
 **There is no git authentication configuration, deliberately.** A recipe names the URL it means
 — `git@github.com:…` for a checkout you push from, `https://…` for one you only read — and mudev
 hands it to git untouched, whatever the host. Anything else is git's own job and works the same
@@ -60,8 +63,27 @@ recipe has gained since.
 
 For a MuTMS release, clone the `release` edition (`mudev clone mutms/release/5.2.4.01`). It is
 one repository at a release tag, with every plugin already merged in, so you get a single
-checkout instead of one per plugin. `--shallow` fetches only the tip commit, not the history —
-useful in CI; a later `mudev fetch` fetches the rest.
+checkout instead of one per plugin.
+
+### The local Moodle mirror
+
+Every Moodle core checkout borrows objects from the local mirror `/srv/extra/moodle.git`
+(`.git/objects/info/alternates`, the link `git clone --reference` creates), so a new workspace
+downloads and stores only what upstream Moodle does not have — a few MB instead of 1 GB of history
+each.
+
+- When it is missing and `/srv/extra` is writable, `clone` creates it from
+  `https://github.com/moodle/moodle.git`. That first clone takes as long as a normal one.
+- When it is writable, every `clone` refreshes it with a quick fetch first.
+- A read-only mirror, for example one baked into a container image, is used as it is.
+- Without `/srv/extra`, or with a read-only one and no mirror, `clone` works as before.
+- `MUDEV_MOODLE_MIRROR=0` turns all of this off.
+
+Workspaces depend on the mirror permanently, so **it must never lose objects**: mudev fetches it
+without `--prune` and sets `gc.pruneExpire=never`. You may create or update it by hand, for
+example from a mirror on your network (`git clone --bare git@git.example.org:moodle/moodle.git
+/srv/extra/moodle.git`), but never prune it, and delete it only together with every workspace
+that uses it.
 
 ## Daily driver
 
@@ -142,18 +164,8 @@ reported and left recorded — that is a plugin whose `.git` went missing, not a
 This deliberately leaves the workspace differing from the recipe it was assembled from; the
 closing line says so.
 
-`fetch` contacts **every** remote a checkout has. A recipe with a mirror on the local network can
-say who is asked first:
-
-```yaml
-extra:
-  mudev: {fetch_order: [backup, origin]}
-```
-
-Git objects are content-addressed, so priming from the near copy leaves the remote over the
-internet with only the difference to send — for a full Moodle core that is a LAN copy instead of
-a 1.4 GB download. A mirror that is unreachable is reported and stepped over; an unreachable
-`origin` stops the run.
+`fetch` contacts **every** remote a checkout has, `origin` first and the rest alphabetically. A
+remote that is unreachable is reported and stepped over; an unreachable `origin` stops the run.
 
 ## Naming what you built
 

@@ -101,7 +101,7 @@ func initInto(t *testing.T, root string) (string, error) {
 	var out strings.Builder
 
 	err := Init(context.Background(), InitOptions{
-		Config: config.Defaults(),
+		Config: testConfig(),
 		Root:   root,
 		Out:    &out,
 	})

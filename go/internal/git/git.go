@@ -164,44 +164,41 @@ func (c *Client) SetRemote(ctx context.Context, dir string, name string, want st
 	return nil
 }
 
+// CloneBare clones a bare repository, used for the local Moodle mirror.
+func (c *Client) CloneBare(ctx context.Context, raw string, dir string) error {
+	return c.run(ctx, "", "clone", "--bare", raw, dir)
+}
+
+// GetConfig returns a git config value of the repository, empty when not set.
+func (c *Client) GetConfig(ctx context.Context, dir string, key string) string {
+	out, err := c.capture(ctx, dir, "config", "--get", key)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(out)
+}
+
+// SetConfig sets a git config value of the repository.
+func (c *Client) SetConfig(ctx context.Context, dir string, key string, value string) error {
+	return c.run(ctx, dir, "config", key, value)
+}
+
+// SetAlternates makes the repository at repo borrow objects from another
+// object store, the same link `git clone --reference` creates.
+func SetAlternates(repo string, objectsDir string) error {
+	info := filepath.Join(repo, ".git", "objects", "info")
+
+	if err := os.MkdirAll(info, 0o755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(filepath.Join(info, "alternates"), []byte(objectsDir+"\n"), 0o644)
+}
+
 // Fetch updates one remote, including its tags.
 func (c *Client) Fetch(ctx context.Context, dir string, remote string) error {
 	return c.run(ctx, dir, "fetch", "--tags", remote)
-}
-
-// FetchShallowTag fetches one tag and its tip commit, and nothing else.
-//
-// `tag <name>`, emphatically not `--tags`: the latter brings EVERY tag, and
-// at depth 1 each one drags its own tree along. Measured against Moodle:
-// --tags is 447 MB and 575 tags, `tag v4.5.12` is 77 MB and one — the
-// difference between shallow being worth doing and not.
-//
-// Fails when ref is not a tag, which is how the caller learns to fall back to
-// a full fetch (a commit pin cannot be fetched shallowly from every server).
-func (c *Client) FetchShallowTag(ctx context.Context, dir string, remote string, ref string) error {
-	return c.run(ctx, dir, "fetch", "--depth", "1", remote, "tag", ref)
-}
-
-// FetchShallowBranch fetches one branch at depth 1 into its remote-tracking ref.
-//
-// Unlike FetchShallowTag there is no cheaper-refspec trick to make: a branch is a
-// single ref, and the configured fetch refspec (set by `git remote add`) lands it
-// at refs/remotes/<remote>/<branch>, from which the caller creates a local branch.
-// The tip goes to the tracking ref rather than straight to refs/heads/<branch>
-// because git refuses to fetch into the branch HEAD points at, even an unborn one.
-func (c *Client) FetchShallowBranch(ctx context.Context, dir string, remote string, branch string) error {
-	return c.run(ctx, dir, "fetch", "--depth", "1", remote, branch)
-}
-
-// CreateBranchNoTrack creates a local branch at start and switches to it, with no
-// upstream set.
-//
-// The absence of an upstream is the point, not an omission: it is how a --shallow
-// branch stays out of `mudev pull`'s way (pull skips a branch that tracks nothing)
-// so a truncated history is never fast-forwarded. SwitchBranch is the tracking
-// counterpart used for a full checkout.
-func (c *Client) CreateBranchNoTrack(ctx context.Context, dir string, local string, start string) error {
-	return c.run(ctx, dir, "switch", "--create", local, start, "--no-track")
 }
 
 // IsShallow reports whether dir has a truncated history.

@@ -11,30 +11,13 @@ import (
 // failure is always fatal.
 const OriginRemote = "origin"
 
-// orderRemotes decides what order a checkout's remotes are fetched in.
-//
-// The recipe's extra.mudev.fetch_order comes first — that is where a project
-// says "the mirror on our network is the fast one, ask it before github".
-// Names the checkout does not have are skipped (a catalogue plugin normally
-// has only origin), and every remaining remote follows, origin first and then
-// alphabetically, so a run is reproducible.
-func orderRemotes(remotes map[string]string, order []string) []string {
-	ordered := make([]string, 0, len(remotes))
-	taken := make(map[string]bool, len(remotes))
-
-	for _, name := range order {
-		if _, ok := remotes[name]; ok && !taken[name] {
-			ordered = append(ordered, name)
-			taken[name] = true
-		}
-	}
-
+// orderRemotes decides what order a checkout's remotes are fetched in: origin
+// first, then the rest alphabetically, so a run is reproducible.
+func orderRemotes(remotes map[string]string) []string {
 	rest := make([]string, 0, len(remotes))
 
 	for name := range remotes {
-		if !taken[name] {
-			rest = append(rest, name)
-		}
+		rest = append(rest, name)
 	}
 
 	sort.Strings(rest)
@@ -50,10 +33,10 @@ func orderRemotes(remotes map[string]string, order []string) []string {
 		}
 	}
 
-	return append(ordered, rest...)
+	return rest
 }
 
-// fetchRemotes fetches every remote of a checkout, in the recipe's order.
+// fetchRemotes fetches every remote of a checkout, origin first.
 //
 // Fetching them all is deliberate: a development recipe carries mirrors and
 // fork upstreams that a developer expects to be up to date, and a public
@@ -63,13 +46,13 @@ func orderRemotes(remotes map[string]string, order []string) []string {
 // the office network, a backup host down for maintenance — is reported and
 // stepped over, because failing the whole assembly over a copy of data that
 // origin also has would make the mirror a single point of failure.
-func fetchRemotes(ctx context.Context, client *git.Client, dir string, order []string, out output) error {
+func fetchRemotes(ctx context.Context, client *git.Client, dir string, out output) error {
 	remotes, err := client.Remotes(ctx, dir)
 	if err != nil {
 		return err
 	}
 
-	ordered := orderRemotes(remotes, order)
+	ordered := orderRemotes(remotes)
 
 	// A shallow checkout — a pinned edition assembled with --depth 1 — is
 	// deepened before anything else happens. Asking for a fetch is asking

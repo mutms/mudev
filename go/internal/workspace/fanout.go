@@ -44,7 +44,7 @@ func Fetch(ctx context.Context, opts FanOptions) error {
 	out := newOutput(opts.Out)
 
 	return fanOutWith(ctx, opts, func(ws *Workspace, dir string, repo Repo) (string, error) {
-		return "", fetchRemotes(ctx, client, dir, ws.FetchOrder, out)
+		return "", fetchRemotes(ctx, client, dir, out)
 	})
 }
 

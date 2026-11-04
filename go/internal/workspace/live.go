@@ -123,6 +123,11 @@ func (l *Live) Save(root string) error {
 		l.Plugins = []map[string]any{}
 	}
 
+	// extra.mudev.fetch_order is deprecated and ignored, older workspaces still carry it.
+	if mudev, ok := l.Extra["mudev"].(map[string]any); ok {
+		delete(mudev, "fetch_order")
+	}
+
 	data, err := json.MarshalIndent(l, "", "  ")
 	if err != nil {
 		return err

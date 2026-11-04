@@ -13,6 +13,15 @@ import (
 )
 
 // runGit runs a git command in dir, failing the test if it does not succeed.
+// testConfig is the default configuration without the local Moodle mirror,
+// tests must never touch the real /srv/extra.
+func testConfig() config.Config {
+	c := config.Defaults()
+	c.MoodleMirror = ""
+
+	return c
+}
+
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 
@@ -162,7 +171,7 @@ func cloneInto(t *testing.T, recipePath string, root string) error {
 	t.Helper()
 
 	return Clone(context.Background(), Options{
-		Config: config.Defaults(),
+		Config: testConfig(),
 		Recipe: recipePath,
 		Root:   root,
 		Out:    io.Discard,
@@ -300,19 +309,6 @@ func TestCloneIsIdempotent(t *testing.T) {
 	}
 }
 
-// cloneShallowInto assembles the recipe with --shallow requested.
-func cloneShallowInto(t *testing.T, recipePath string, root string) error {
-	t.Helper()
-
-	return Clone(context.Background(), Options{
-		Config:  config.Defaults(),
-		Recipe:  recipePath,
-		Root:    root,
-		Out:     io.Discard,
-		Shallow: true,
-	})
-}
-
 // gitFails reports whether a git command exits non-zero — for asserting the
 // absence of a thing, such as the upstream a shallow branch must not have.
 func gitFails(t *testing.T, dir string, args ...string) bool {
@@ -326,108 +322,9 @@ func gitFails(t *testing.T, dir string, args ...string) bool {
 	return res.Failed()
 }
 
-// shallowFixture is workspaceFixture's sibling for the --shallow tests: it
-// reaches the core over file:// so git honours --depth 1 (the local-path
-// transport can ignore it), and lets the caller pin the base ref to either a
-// branch or a tag. It returns the recipe path and an empty workspace root.
-func shallowFixture(t *testing.T, baseRef string) (recipePath string, root string) {
-	t.Helper()
-
-	base := t.TempDir()
-
-	core := filepath.Join(base, "remote-core")
-	fakeCore(t, core, "502")
-	// A tag on the patch branch tip, so a tag-ref recipe has something to pin.
-	runGit(t, core, "tag", "v5.2.1.01", "patch/mutms/MOODLE_502_STABLE")
-
-	recipePath = filepath.Join(base, "recipe.yaml")
-
-	recipe := `name: shallow test
-base:
-  mdlbranch: "502"
-  source:
-    git:
-      remotes:
-        origin: file://` + core + `
-      ref: ` + baseRef + `
-  localbranch: MOODLE_502_STABLE
-plugins: []
-`
-
-	if err := os.WriteFile(recipePath, []byte(recipe), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	root = filepath.Join(base, "workspace")
-
-	if err := os.MkdirAll(root, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	return recipePath, root
-}
-
-// TestCloneShallowBranchIsAnUntrackedShallowBranch covers --shallow for a branch
-// ref: the checkout is a real, developable local branch (not detached), but
-// truncated to one commit and with no upstream. The missing upstream is the load-
-// bearing property — `mudev pull` skips a branch that tracks nothing, so a shallow
-// checkout is never something pull fast-forwards on a partial history, while
-// `mudev fetch` can still unshallow it.
-func TestCloneShallowBranchIsAnUntrackedShallowBranch(t *testing.T) {
-	recipePath, root := shallowFixture(t, "origin/patch/mutms/MOODLE_502_STABLE")
-
-	if err := cloneShallowInto(t, recipePath, root); err != nil {
-		t.Fatalf("Clone --shallow: %v", err)
-	}
-
-	// On the branch the recipe named — a branch, not a detached HEAD.
-	if head := gitOut(t, root, "branch", "--show-current"); head != "MOODLE_502_STABLE" {
-		t.Errorf("core is on %q, want branch MOODLE_502_STABLE", head)
-	}
-
-	// History is genuinely truncated, not merely flagged.
-	if got := strings.TrimSpace(gitOut(t, root, "rev-parse", "--is-shallow-repository")); got != "true" {
-		t.Errorf("core reports is-shallow=%q, want true", got)
-	}
-
-	if got := strings.TrimSpace(gitOut(t, root, "rev-list", "--count", "HEAD")); got != "1" {
-		t.Errorf("core has %s commits, want 1 (shallow)", got)
-	}
-
-	// No upstream — the property that keeps pull away from it.
-	if !gitFails(t, root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}") {
-		t.Errorf("shallow branch has an upstream, want none")
-	}
-}
-
-// TestCloneShallowTagIsDetachedAndShallow covers --shallow for a tag ref: a
-// pinned edition is checked out detached — there is no branch it belongs on —
-// and truncated to the one tagged commit.
-func TestCloneShallowTagIsDetachedAndShallow(t *testing.T) {
-	recipePath, root := shallowFixture(t, "v5.2.1.01")
-
-	if err := cloneShallowInto(t, recipePath, root); err != nil {
-		t.Fatalf("Clone --shallow: %v", err)
-	}
-
-	// Detached: no current branch.
-	if head := gitOut(t, root, "branch", "--show-current"); head != "" {
-		t.Errorf("core is on branch %q, want a detached HEAD", head)
-	}
-
-	if got := strings.TrimSpace(gitOut(t, root, "rev-parse", "--is-shallow-repository")); got != "true" {
-		t.Errorf("core reports is-shallow=%q, want true", got)
-	}
-
-	if got := strings.TrimSpace(gitOut(t, root, "describe", "--tags")); got != "v5.2.1.01" {
-		t.Errorf("core is at %q, want the tag v5.2.1.01", got)
-	}
-}
-
-// TestCloneFetchesEveryRemoteInOrder checks the mirror-priming arrangement: a
-// recipe naming a fast local mirror before origin must fetch both, mirror
-// first, so that origin is left with only the difference to send.
-func TestCloneFetchesEveryRemoteInOrder(t *testing.T) {
+// TestCloneFetchesEveryRemote checks that every remote of a checkout is
+// fetched, not just origin.
+func TestCloneFetchesEveryRemote(t *testing.T) {
 	base := t.TempDir()
 
 	core := filepath.Join(base, "remote-core")
@@ -442,8 +339,6 @@ func TestCloneFetchesEveryRemoteInOrder(t *testing.T) {
 	recipePath := filepath.Join(base, "recipe.yaml")
 
 	recipe := `name: mirrored
-extra:
-  mudev: {fetch_order: [backup, origin]}
 base:
   mdlbranch: "502"
   source:
@@ -491,8 +386,6 @@ func TestCloneSurvivesAnUnreachableMirror(t *testing.T) {
 	recipePath := filepath.Join(base, "recipe.yaml")
 
 	recipe := `name: mirror down
-extra:
-  mudev: {fetch_order: [backup, origin]}
 base:
   mdlbranch: "502"
   source:
@@ -518,7 +411,7 @@ plugins: []
 	var out strings.Builder
 
 	err := Clone(context.Background(), Options{
-		Config: config.Defaults(),
+		Config: testConfig(),
 		Recipe: recipePath,
 		Root:   root,
 		Out:    &out,
@@ -588,7 +481,7 @@ func TestCloneReportsWhatItIsDoing(t *testing.T) {
 
 	recipe := `name: Narrated recipe
 extra:
-  mudev: {release: mutms, fetch_order: [backup, origin]}
+  mudev: {release: mutms}
 base:
   mdlbranch: "502"
   source:
@@ -614,7 +507,7 @@ plugins: []
 	var out strings.Builder
 
 	err := Clone(context.Background(), Options{
-		Config: config.Defaults(),
+		Config: testConfig(),
 		Recipe: recipePath,
 		Root:   root,
 		Out:    &out,
@@ -626,12 +519,11 @@ plugins: []
 	got := out.String()
 
 	want := []string{
-		"Narrated recipe",              // which recipe
-		"branch 502",                   // which Moodle
-		"release:     mutms",           // whether this tree can be tagged
-		"fetch order: backup, origin",  // who gets asked first
-		"fetch backup (1/2) " + mirror, // …and that it really was asked first
-		"fetch origin (2/2) " + core,
+		"Narrated recipe",    // which recipe
+		"branch 502",         // which Moodle
+		"release:     mutms", // whether this tree can be tagged
+		"fetch origin (1/2) " + core,
+		"fetch backup (2/2) " + mirror,
 		"checkout MOODLE_502_STABLE tracking origin/patch/mutms/MOODLE_502_STABLE",
 	}
 
@@ -641,16 +533,16 @@ plugins: []
 		}
 	}
 
-	// The mirror must be named before origin in the output, not just present.
-	if strings.Index(got, "fetch backup") > strings.Index(got, "fetch origin") {
-		t.Errorf("the mirror was not fetched first:\n%s", got)
+	// Origin is always fetched first.
+	if strings.Index(got, "fetch origin") > strings.Index(got, "fetch backup") {
+		t.Errorf("origin was not fetched first:\n%s", got)
 	}
 
 	// A re-run says it is continuing rather than starting.
 	out.Reset()
 
 	if err := Clone(context.Background(), Options{
-		Config: config.Defaults(),
+		Config: testConfig(),
 		Recipe: recipePath,
 		Root:   root,
 		Out:    &out,

@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/mutms/mudev/go/internal/config"
 )
 
 // pushFixture clones the standard workspace fixture and returns the workspace
@@ -30,7 +28,7 @@ func pushInto(t *testing.T, root string) (string, error) {
 
 	var out strings.Builder
 
-	err := Push(context.Background(), FanOptions{Config: config.Defaults(), Root: root, Out: &out})
+	err := Push(context.Background(), FanOptions{Config: testConfig(), Root: root, Out: &out})
 
 	return out.String(), err
 }

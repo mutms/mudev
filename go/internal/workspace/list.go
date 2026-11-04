@@ -127,10 +127,6 @@ type Workspace struct {
 
 	// Repos are its checkouts, core first and then by path.
 	Repos []Repo
-
-	// FetchOrder is the live recipe's extra.mudev.fetch_order — which remotes
-	// to contact first, so a near mirror can spare the slow one the work.
-	FetchOrder []string
 }
 
 // Enumerate finds the workspace's checkouts without asking git anything about
@@ -149,7 +145,7 @@ func Enumerate(dir string) (*Workspace, error) {
 		return nil, err
 	}
 
-	recorded, order, err := recordedRepos(root)
+	recorded, err := recordedRepos(root)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +174,7 @@ func Enumerate(dir string) (*Workspace, error) {
 
 	sortRepos(repos)
 
-	return &Workspace{Root: root, Repos: repos, FetchOrder: order}, nil
+	return &Workspace{Root: root, Repos: repos}, nil
 }
 
 // recordedRepos reads the live recipe and maps each entry onto the path it
@@ -186,22 +182,22 @@ func Enumerate(dir string) (*Workspace, error) {
 //
 // A workspace with no live recipe is not an error: the listing still reports
 // whatever checkouts are there, all of them unmanaged.
-func recordedRepos(root string) (map[string]*Repo, []string, error) {
+func recordedRepos(root string) (map[string]*Repo, error) {
 	repos := map[string]*Repo{}
 
 	path := LivePath(root)
 
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return repos, nil, nil
+			return repos, nil
 		}
 
-		return nil, nil, err
+		return nil, err
 	}
 
 	live, err := recipe.Load(path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	core := &Repo{Path: CoreDir, Core: true, Managed: true}
@@ -219,7 +215,7 @@ func recordedRepos(root string) (map[string]*Repo, []string, error) {
 
 		relpath, err := moodle.PluginPath(entry.Relpath, live.Base.Strippublic)
 		if err != nil {
-			return nil, nil, fmt.Errorf("plugin %s: %w", entry.Name, err)
+			return nil, fmt.Errorf("plugin %s: %w", entry.Name, err)
 		}
 
 		repo := &Repo{
@@ -237,7 +233,7 @@ func recordedRepos(root string) (map[string]*Repo, []string, error) {
 		repos[relpath] = repo
 	}
 
-	return repos, live.FetchOrder(), nil
+	return repos, nil
 }
 
 // recordedBranch works out which local branch a recorded ref implies, so a

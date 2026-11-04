@@ -22,14 +22,14 @@ Moodle (and, longer term, general Moodle development).
 | `/srv/extra/mdl-plugins` | plugin metadata YAML (separate repo) — the default `--plugins-dir` |
 | `/srv/extra/mdl-recipes` | public recipe YAML (separate repo) — the default `--recipes-dir`   |
 | `/srv/extra/dev-recipes` | private recipe YAML (separate repo) — may not be present           |
+| `/srv/extra/moodle.git`  | local Moodle mirror, created and refreshed by `clone`, never pruned |
 
 `/srv/extra` is mudev's catalogue location in every environment, not an mpd path; `mdl-demo`
 creates it too. The catalogues stay siblings, so a recipe's relative path to the plugin
 catalogue (`../../../mdl-plugins`) resolves.
 
 `mdl-recipes` is public: `https://…` remotes, read-only, consumed by CI and others.
-`dev-recipes` holds the MuTMS working recipes: `git@…` remotes and extra mirrors
-(`fetch_order`). Reach it by path
+`dev-recipes` holds the MuTMS working recipes with `git@…` remotes. Reach it by path
 (`mudev clone /srv/extra/dev-recipes/mutms/dev/5.2.yaml`) or via `MUDEV_RECIPES_DIRECTORY`.
 **Never move a `git@…` dev recipe into the public catalogue.**
 
@@ -44,6 +44,9 @@ have no Go; they get `/opt/mudev` bind-mounted read-only. CI uses the static bin
 | `MUDEV_PLUGINS_DIRECTORY` | `--plugins-dir` | `/srv/extra/mdl-plugins` |
 | `MUDEV_RECIPES_DIRECTORY` | `--recipes-dir` | `/srv/extra/mdl-recipes` |
 
+- `MUDEV_MOODLE_MIRROR=0` stops `clone` creating, refreshing and using `/srv/extra/moodle.git`
+  (`internal/workspace/mirror.go`). Core checkouts link to the mirror through
+  `.git/objects/info/alternates` permanently, so the mirror must never lose objects.
 - Directory values may be relative; they are made absolute at startup.
 - Relative paths *inside* a YAML file are anchored to that file's directory.
 - **No git authentication configuration, and adding some would be a regression.** A recipe

@@ -80,7 +80,7 @@ plugins:
 | `contributed_by`     | no  | Credit party (name or list); also asserts recipe authorship. Catalogues are CC0 — keeping it on reuse is a courtesy, not a condition. In a live recipe, this is the *project owner*.                                         |
 | `based_on_recipe`    | no  | Live-recipe only: what `clone` was given — a catalogue identifier *or* a recipe file path (provenance); also the courtesy credit to a catalogue source (see below).                                                          |
 | `catalog`            | no  | Where bare-name references resolve; path relative to the file, or absolute. Defaults to `MUDEV_PLUGINS_DIRECTORY`.                                                                                                           |
-| `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.fetch_order` = which remote is fetched first. See below.                                                                                      |
+| `extra`              | no  | Tool-namespaced config (composer-style), also allowed per plugin. `extra.mudev.release` = release flavour. See below.                                                                                                        |
 | `base.mdlbranch`     | yes | Moodle `$branch` code (e.g. `502`). Drives plugin-branch resolution.                                                                                                                                                         |
 | `base.source`        | yes | How to acquire Moodle core — same shape as a plugin `source` (kinds by key; see below). Normally `git`: `git.remotes.origin` is the clone remote (name → URL) and `git.ref` is what to check out.                            |
 | `base.localbranch`   | no  | Local branch name to create from a branch `source.git.ref` (default = the remote branch name). Lives *outside* `source`. See Refs.                                                                                           |
@@ -141,16 +141,18 @@ what the catalogue would resolve, made explicit.)
 so a tool extends recipes without any schema change.
 
 **`extra.mudev` is the exception: it is defined, and closed.** mudev owns that namespace, so the
-schema types every key (`release` a string, `fetch_order` a list of strings) and rejects
+schema types every key (`release` a string) and rejects
 anything else. A mistyped `fetchorder:` or `releases:` would otherwise be a setting that silently
 does nothing — which is the worst kind of mistake, because the tool keeps working and just ignores
 you. The schema and the binary ship together, so a new mudev key arrives with the version that
 reads it; anyone else reusing this format writes their own `extra.<tool>` namespace, which the
 schema does not constrain.
 
-mudev reads one key, `fetch_order` (below). The schema also accepts `release`, reserved for
-release tooling that this version does not include; mudev only warns when the name is not one
-it knows.
+The schema accepts `release`, reserved for release tooling that this version does not include;
+mudev only warns when the name is not one it knows. `fetch_order` is deprecated and ignored: it
+is still accepted so live recipes of older workspaces load, and mudev drops it when it rewrites
+them. mudev fetches `origin` first and the rest alphabetically, and Moodle core is sped up by the
+local mirror instead (see `docs/usage.md`).
 
 ## Remote URLs and credentials
 
@@ -169,37 +171,6 @@ credential helper, or a `url.<base>.insteadOf` rule in `~/.gitconfig`, each of w
 every git tool on the machine rather than only to mudev. **Never put a token in a recipe:** a
 recipe is a file that gets committed and shared.
 
-## `extra.mudev.fetch_order` — which remote is asked first
-
-mudev fetches **every** remote of every checkout, on `clone` and on `fetch` alike. A development
-recipe carries mirrors and fork upstreams that a developer expects to be current, and a catalogue
-recipe has nothing but `origin`, so the rule costs it nothing.
-
-`fetch_order` decides the order:
-
-```yaml
-extra:
-  mudev: {fetch_order: [backup, origin]}
-```
-
-Git objects are content-addressed, so this is not cosmetic. Fetching a **mirror on the local
-network first** fills the object store, and the subsequent fetch from the remote over the
-internet has only the difference left to send — for a full Moodle core, that is the difference
-between a LAN copy and a 1.4 GB download. (Measured on a plugin repo: after priming from a local
-mirror, the github fetch transferred zero objects and the resulting pack was identical.)
-
-Rules:
-
-- Remotes **not** named are still fetched, after the ones that are (`origin` leading the
-  remainder, then alphabetically — a run is reproducible).
-- A name a particular checkout does not have is skipped, so a workspace-wide order naming
-  `backup` is harmless for a catalogue plugin that only has `origin`.
-- Only `origin` is load-bearing: a mirror that cannot be reached (laptop off the office network,
-  backup host down) is **reported and stepped over**, because failing an assembly over a copy of
-  data that origin also has would make the mirror a single point of failure. An unreachable
-  `origin` stops the run.
-- The order is recipe-level and applies to core and every plugin. It travels into `.mudev.json`
-  with the rest of `extra`, so `mudev fetch` uses it without re-reading the source recipe.
 
 ## Clone flow (`mudev clone <recipe>`)
 

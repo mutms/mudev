@@ -251,46 +251,6 @@ func (r *Recipe) Release() string {
 	return ReleaseFlavour(r.Extra)
 }
 
-// FetchOrder returns extra.mudev.fetch_order: the remote names to contact
-// first, in that order.
-//
-// mudev fetches every remote a checkout has. The order matters when one of
-// them is faster than the others — a mirror on the local network, say. Git
-// objects are content-addressed, so priming a repository from the near copy
-// first leaves the slow remote with only the difference to send, which for a
-// full Moodle core is the difference between a LAN copy and a 1.4 GB download.
-//
-// Remotes not named here are still fetched, after the ones that are. Names
-// that a particular checkout does not have are skipped — a plugin catalogue
-// entry usually has only origin, while a development recipe adds mirrors.
-func FetchOrder(extra map[string]any) []string {
-	mudev, ok := extra["mudev"].(map[string]any)
-	if !ok {
-		return nil
-	}
-
-	listed, ok := mudev["fetch_order"].([]any)
-	if !ok {
-		return nil
-	}
-
-	order := make([]string, 0, len(listed))
-
-	for _, name := range listed {
-		if remote, ok := name.(string); ok && remote != "" {
-			order = append(order, remote)
-		}
-	}
-
-	return order
-}
-
-// FetchOrder is the recipe-level remote fetch order, applied to every checkout
-// in the workspace.
-func (r *Recipe) FetchOrder() []string {
-	return FetchOrder(r.Extra)
-}
-
 // Release is the plugin-level release flag: its presence selects the plugin as
 // release-managed, under the recipe's flavour.
 func (e *Entry) Release() string {

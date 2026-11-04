@@ -57,7 +57,8 @@ mudev clone mutms/release/5.2.4.01
 The recipe is either a catalogue identifier (`vendor/stream/version`) or a path to a recipe
 file. [Browse the available recipes](https://github.com/mutms/mdl-recipes). `clone` is
 idempotent — run it again to resume an interrupted clone or to pick up plugins the recipe has
-gained. Add `--shallow` when you only need the code, not the git history (for example in CI).
+gained. Moodle core borrows its history from the local mirror `/srv/extra/moodle.git`, so a new
+workspace downloads and stores only what upstream Moodle does not have.
 
 **Add a plugin** to a workspace you already have, and it lands at the right place on the right
 branch for that Moodle:

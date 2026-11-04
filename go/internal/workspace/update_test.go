@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/mutms/mudev/go/internal/config"
 )
 
 // updatedWorkspace assembles a tree and reconstructs its live recipe with Init,
@@ -19,7 +17,7 @@ func updatedWorkspace(t *testing.T) string {
 
 	root := initFixture(t)
 
-	if err := Init(context.Background(), InitOptions{Config: config.Defaults(), Root: root, Out: io.Discard}); err != nil {
+	if err := Init(context.Background(), InitOptions{Config: testConfig(), Root: root, Out: io.Discard}); err != nil {
 		t.Fatalf("seed init: %v", err)
 	}
 
@@ -32,7 +30,7 @@ func updateInto(t *testing.T, root string, relpath string) (string, error) {
 	var out strings.Builder
 
 	err := Update(context.Background(), UpdateOptions{
-		Config:  config.Defaults(),
+		Config:  testConfig(),
 		Root:    root,
 		Relpath: relpath,
 		Out:     &out,

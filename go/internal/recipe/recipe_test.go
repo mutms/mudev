@@ -115,31 +115,18 @@ func TestLocate(t *testing.T) {
 	}
 }
 
-func TestFetchOrder(t *testing.T) {
-	r, err := Parse([]byte(`
+func TestDeprecatedFetchOrderStillLoads(t *testing.T) {
+	// fetch_order is ignored now, but live recipes of existing workspaces
+	// still carry it, so the schema must keep accepting it.
+	if _, err := Parse([]byte(`
 extra:
   mudev: {release: mutms, fetch_order: [forge, origin]}
 base:
   mdlbranch: "405"
   source: {git: {remotes: {origin: git@github.com:mutms/patches.git}}}
 plugins: []
-`))
-	if err != nil {
+`)); err != nil {
 		t.Fatalf("Parse: %v", err)
-	}
-
-	if got := r.FetchOrder(); len(got) != 2 || got[0] != "forge" || got[1] != "origin" {
-		t.Errorf("FetchOrder = %v", got)
-	}
-
-	// A recipe that says nothing about order is the normal case.
-	plain, err := Parse([]byte("base:\n  mdlbranch: \"405\"\n  source: {git: {remotes: {origin: x}}}\nplugins: []\n"))
-	if err != nil {
-		t.Fatalf("Parse: %v", err)
-	}
-
-	if got := plain.FetchOrder(); got != nil {
-		t.Errorf("FetchOrder = %v, want none", got)
 	}
 }
 

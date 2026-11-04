@@ -52,11 +52,6 @@ type Options struct {
 	// Out receives mudev's own progress lines. git's output goes straight to
 	// the terminal, as usual.
 	Out io.Writer
-
-	// Shallow requests a single-commit fetch of a pinned edition (a tag ref
-	// from one remote), trading its history for a much smaller checkout. It is
-	// opt-in: the default assembles the full history.
-	Shallow bool
 }
 
 // cloner carries the state of one clone run.
@@ -68,10 +63,6 @@ type cloner struct {
 	live    *Live
 	root    string
 	out     output
-
-	// shallow is the caller's --shallow request: fetch only the pinned commit
-	// where the ref allows it.
-	shallow bool
 
 	// flavour is the recipe's release flavour, resolved once up front and used
 	// for the whole run.
@@ -98,10 +89,9 @@ func Clone(ctx context.Context, opts Options) error {
 	}
 
 	c := &cloner{
-		cfg:     opts.Config,
-		root:    root,
-		out:     newOutput(opts.Out),
-		shallow: opts.Shallow,
+		cfg:  opts.Config,
+		root: root,
+		out:  newOutput(opts.Out),
 	}
 
 	if err := c.load(opts.Recipe); err != nil {
@@ -236,11 +226,6 @@ func (c *cloner) banner() {
 		c.printf("release:     %s", c.flavour)
 	}
 
-	if order := c.recipe.FetchOrder(); len(order) > 0 {
-		c.printf("fetch order: %s (remotes not listed are fetched after these)",
-			strings.Join(order, ", "))
-	}
-
 	c.printf("plugins:     %d", len(c.recipe.Plugins))
 
 	if c.resuming {
@@ -293,6 +278,8 @@ func (c *cloner) assembleBase(ctx context.Context) error {
 			return err
 		}
 
+		c.useMirror(ctx, c.root)
+
 		if err := c.acquire(ctx, c.root, gs.Remotes, ref, c.recipe.Base.Localbranch); err != nil {
 			return err
 		}
@@ -303,6 +290,8 @@ func (c *cloner) assembleBase(ctx context.Context) error {
 		// .git directory for a checkout, which is how a workspace ends up with
 		// plugins installed on top of nothing.
 		c.printf("base: incomplete checkout — completing it at %s", ref)
+
+		c.useMirror(ctx, c.root)
 
 		if err := c.acquire(ctx, c.root, gs.Remotes, ref, c.recipe.Base.Localbranch); err != nil {
 			return err
@@ -462,27 +451,13 @@ func (c *cloner) acquire(ctx context.Context, dir string, remotes map[string]str
 		return err
 	}
 
-	remote, branch, isBranch := git.SplitBranchRef(ref, remotes)
+	_, branch, isBranch := git.SplitBranchRef(ref, remotes)
 
 	if isBranch && localbranch == "" {
 		localbranch = branch
 	}
 
-	// --shallow fetches only the tip of the ref, trading history for size:
-	// Moodle core at a release tag is ~989 MB of .git in full and ~80 MB
-	// shallow. It is a best effort — a remote that will not serve the ref at
-	// depth 1 falls through to a full assembly, since a slower one beats none.
-	if c.shallow {
-		if err := c.acquireShallow(ctx, dir, remote, branch, isBranch, ref, localbranch); err == nil {
-			return nil
-		} else {
-			c.out.warnf("shallow fetch of %s failed (%v) — assembling in full", ref, err)
-		}
-	}
-
-	if err := fetchRemotes(ctx, c.client, dir, c.recipe.FetchOrder(), c.out); err != nil {
-		// Every remote is fetched, in the recipe's order — a near mirror first
-		// leaves origin with only the difference to send.
+	if err := fetchRemotes(ctx, c.client, dir, c.out); err != nil {
 		return err
 	}
 
@@ -497,47 +472,6 @@ func (c *cloner) acquire(ctx context.Context, dir string, remotes map[string]str
 	c.stepf("checkout %s tracking %s", localbranch, ref)
 
 	return c.client.SwitchBranch(ctx, dir, localbranch, ref)
-}
-
-// acquireShallow fetches only the tip of the ref at depth 1 and checks it out —
-// the small version of a --shallow assembly.
-//
-// A tag or commit lands detached, exactly as a full pin does. A branch becomes a
-// real, developable local branch, created --no-track: with no upstream, `mudev
-// pull` skips it (a branch with no upstream is skipped), so a shallow checkout is
-// never something pull has to fast-forward on truncated history — and `mudev
-// fetch` unshallows it first if the history is later wanted. Fetching straight
-// into refs/heads/<branch> is not an option: git refuses to fetch into the
-// branch HEAD points at, even an unborn one, so the branch tip goes to its
-// remote-tracking ref and the local branch is created from there.
-//
-// Nothing is recorded about the shallow state here: git owns it (.git/shallow),
-// and a later fetch unshallows before anything else (see fetchRemotes).
-//
-// Returns an error when the remote will not serve the ref shallowly, which is the
-// caller's cue to fall back to a full fetch.
-func (c *cloner) acquireShallow(ctx context.Context, dir string, remote string, branch string, isBranch bool, ref string, localbranch string) error {
-	if !isBranch {
-		c.stepf("fetch %s (shallow, %s only)", OriginRemote, ref)
-
-		if err := c.client.FetchShallowTag(ctx, dir, OriginRemote, ref); err != nil {
-			return err
-		}
-
-		c.stepf("checkout %s (shallow, detached)", ref)
-
-		return c.client.CheckoutDetached(ctx, dir, ref)
-	}
-
-	c.stepf("fetch %s (shallow, %s only)", remote, branch)
-
-	if err := c.client.FetchShallowBranch(ctx, dir, remote, branch); err != nil {
-		return err
-	}
-
-	c.stepf("checkout %s (shallow, no upstream)", localbranch)
-
-	return c.client.CreateBranchNoTrack(ctx, dir, localbranch, remote+"/"+branch)
 }
 
 // known reports whether this build has a handler for a release flavour.

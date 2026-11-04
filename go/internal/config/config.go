@@ -26,6 +26,10 @@ import (
 const (
 	EnvPluginsDir = "MUDEV_PLUGINS_DIRECTORY"
 	EnvRecipesDir = "MUDEV_RECIPES_DIRECTORY"
+
+	// EnvMoodleMirror set to 0 stops mudev creating, refreshing and using
+	// the local Moodle mirror.
+	EnvMoodleMirror = "MUDEV_MOODLE_MIRROR"
 )
 
 // Built-in defaults — mudev's canonical catalogue layout, in any environment.
@@ -48,6 +52,15 @@ const (
 	DefaultRecipesDir = "/srv/extra/mdl-recipes"
 )
 
+// The local Moodle mirror: a bare repository that every Moodle core checkout
+// borrows objects from, so a new workspace downloads only what upstream Moodle
+// does not have. It is created when /srv/extra is writable and never loses
+// objects, workspaces keep depending on it.
+const (
+	DefaultMoodleMirror = "/srv/extra/moodle.git"
+	MoodleUpstream      = "https://github.com/moodle/moodle.git"
+)
+
 // LiveRecipeFile is the name of the single mudev-managed state file written at
 // the root of a workspace (the "live recipe").
 const LiveRecipeFile = ".mudev.json"
@@ -61,13 +74,21 @@ type Config struct {
 	// RecipesDir is where recipe identifiers resolve
 	// (<RecipesDir>/<vendor>/<stream>/<version>.yaml).
 	RecipesDir string
+
+	// MoodleMirror is the path of the local Moodle mirror, empty when disabled.
+	MoodleMirror string
+
+	// MoodleUpstream is where a missing mirror is cloned from.
+	MoodleUpstream string
 }
 
 // Defaults returns the built-in configuration, before env vars and flags.
 func Defaults() Config {
 	return Config{
-		PluginsDir: DefaultPluginsDir,
-		RecipesDir: DefaultRecipesDir,
+		PluginsDir:     DefaultPluginsDir,
+		RecipesDir:     DefaultRecipesDir,
+		MoodleMirror:   DefaultMoodleMirror,
+		MoodleUpstream: MoodleUpstream,
 	}
 }
 
@@ -81,6 +102,10 @@ func ApplyEnv(c *Config) error {
 
 	if v, ok := os.LookupEnv(EnvRecipesDir); ok && v != "" {
 		c.RecipesDir = v
+	}
+
+	if v, ok := os.LookupEnv(EnvMoodleMirror); ok && v == "0" {
+		c.MoodleMirror = ""
 	}
 
 	return nil

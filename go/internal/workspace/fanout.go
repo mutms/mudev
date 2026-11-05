@@ -32,9 +32,8 @@ type FanOptions struct {
 //
 // All remotes, always: a development recipe carries mirrors and fork upstreams
 // that a developer expects to be current, and a public recipe has nothing but
-// origin, so the rule costs it nothing. The recipe's extra.mudev.fetch_order
-// decides who is asked first — a mirror on the local network leaves the slow
-// remote with only the difference to send.
+// origin, so the rule costs it nothing. origin is fetched first, then the rest
+// alphabetically (see fetchRemotes).
 //
 // Fetching changes nothing in a working tree, so it runs everywhere: recorded
 // plugins, Moodle core, and repositories nobody recorded.

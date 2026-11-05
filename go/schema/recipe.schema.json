@@ -59,7 +59,7 @@
       "properties": {
         "mudev": {
           "type": "object",
-          "description": "mudev's own namespace, and the only one this schema defines. It is CLOSED: every key mudev reads is listed here, so a typo (fetchorder, releases) is a schema error rather than a setting that silently does nothing. mudev's schema and binary ship together, so new keys arrive with the version that reads them. Other tools keep their own extra.<tool> namespace, which this schema does not constrain.",
+          "description": "mudev's own namespace, and the only one this schema defines. It is CLOSED: every key mudev reads is listed here, so a typo (relase, releases) is a schema error rather than a setting that silently does nothing. mudev's schema and binary ship together, so new keys arrive with the version that reads them. Other tools keep their own extra.<tool> namespace, which this schema does not constrain.",
           "additionalProperties": false,
           "properties": {
             "release": {
@@ -159,7 +159,7 @@
                 "properties": {
                   "mudev": {
                     "type": "object",
-                    "description": "mudev's own namespace, and the only one this schema defines. It is CLOSED: every key mudev reads is listed here, so a typo (fetchorder, releases) is a schema error rather than a setting that silently does nothing. mudev's schema and binary ship together, so new keys arrive with the version that reads them. Other tools keep their own extra.<tool> namespace, which this schema does not constrain.",
+                    "description": "mudev's own namespace, and the only one this schema defines. It is CLOSED: every key mudev reads is listed here, so a typo (relase, releases) is a schema error rather than a setting that silently does nothing. mudev's schema and binary ship together, so new keys arrive with the version that reads them. Other tools keep their own extra.<tool> namespace, which this schema does not constrain.",
                     "additionalProperties": false,
                     "properties": {
                       "release": {
@@ -206,7 +206,7 @@
           "properties": {
             "remotes": {
               "type": "object",
-              "description": "Git remotes as name → URL string. `origin` is the primary clone remote; `upstream` (forks) and `backup` (mirror) are optional. A `<remote>/<branch>` ref resolves its remote name here.",
+              "description": "Git remotes as name → URL string. `origin` is the primary clone remote; `upstream` (forks) and any others (a mirror) are optional. A `<remote>/<branch>` ref resolves its remote name here.",
               "required": [
                 "origin"
               ],

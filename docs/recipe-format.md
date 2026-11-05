@@ -142,7 +142,7 @@ so a tool extends recipes without any schema change.
 
 **`extra.mudev` is the exception: it is defined, and closed.** mudev owns that namespace, so the
 schema types every key (`release` a string) and rejects
-anything else. A mistyped `fetchorder:` or `releases:` would otherwise be a setting that silently
+anything else. A mistyped `relase:` or `releases:` would otherwise be a setting that silently
 does nothing — which is the worst kind of mistake, because the tool keeps working and just ignores
 you. The schema and the binary ship together, so a new mudev key arrives with the version that
 reads it; anyone else reusing this format writes their own `extra.<tool>` namespace, which the

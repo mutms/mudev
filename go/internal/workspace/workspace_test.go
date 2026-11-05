@@ -71,9 +71,9 @@ func TestNarrowSourceToGit(t *testing.T) {
 }
 
 func TestSortedNamesPutsOriginFirst(t *testing.T) {
-	got := sortedNames(map[string]string{"upstream": "u", "backup": "b", "origin": "o"})
+	got := sortedNames(map[string]string{"upstream": "u", "mirror": "b", "origin": "o"})
 
-	if want := []string{"origin", "backup", "upstream"}; !reflect.DeepEqual(got, want) {
+	if want := []string{"origin", "mirror", "upstream"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("sortedNames = %v, want %v", got, want)
 	}
 }

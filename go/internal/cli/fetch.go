@@ -19,12 +19,9 @@ func newFetchCmd(s *settings) *cobra.Command {
 			"A development recipe carries mirrors and fork upstreams that should stay\n" +
 			"current, and a catalogue recipe has nothing but origin, so fetching them all\n" +
 			"costs it nothing.\n\n" +
-			"The recipe's extra.mudev.fetch_order decides who is asked first, for example\n" +
-			"{fetch_order: [backup, origin]}. Git objects are content-addressed, so a\n" +
-			"mirror on the local network fills the repository first and leaves the remote\n" +
-			"over the internet with only the difference to send. A remote other than\n" +
-			"origin that cannot be reached is reported and stepped over — a mirror being\n" +
-			"down must not stop the work.\n\n" +
+			"origin is fetched first, then the other remotes alphabetically. A remote\n" +
+			"other than origin that cannot be reached is reported and stepped over — a\n" +
+			"mirror being down must not stop the work.\n\n" +
 			"Fetching only updates remote-tracking branches; nothing in a working tree\n" +
 			"changes, and nothing is merged. Use mudev pull for that.",
 		Args: cobra.NoArgs,

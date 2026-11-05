@@ -46,7 +46,7 @@ requirements:
 | `title`           | yes | Human display name for a catalogue UI (`Programs`, not the slug `tool_muprog`). English fallback; localized names come from the plugin's lang packs. See Title.                                                                                                                                                          |
 | `description`     | no  | Short one-line human summary (the composer `description`). Long-form copy is the repo README, not stored here.                                                                                                                                                                                                           |
 | `relpath`         | yes | Explicit install path relative to the Moodle root, newest (`public/`) layout. See Relpath.                                                                                                                                                                                                                               |
-| `source`          | no  | Acquisition methods keyed by kind (`git` + `composer` today; `zip` reserved) — kinds can coexist. `git.remotes` is a name → URL map (`origin` clone remote; `upstream` forks, `backup` mirror); `composer` is the Packagist package name. Optional overall (advertise-only); clone fails only if git is actually needed. |
+| `source`          | no  | Acquisition methods keyed by kind (`git` + `composer` today; `zip` reserved) — kinds can coexist. `git.remotes` is a name → URL map (`origin` clone remote; `upstream` forks; any others, e.g. a mirror); `composer` is the Packagist package name. Optional overall (advertise-only); clone fails only if git is actually needed. |
 | `source.composer` | no  | Packagist package name; presence = published on Packagist. See Composer.                                                                                                                                                                                                                                                 |
 | `homepage`        | no  | Project homepage.                                                                                                                                                                                                                                                                                                        |
 | `license`         | no  | SPDX id, e.g. `GPL-3.0-or-later`.                                                                                                                                                                                                                                                                                        |
@@ -68,9 +68,9 @@ several ways to get the same code at once and each consumer picks the kind it su
 not stored in the catalogue.
 
 Under `git`, `remotes` is a **name → URL** map. `origin` is the primary clone remote; `upstream`
-(forks) and any others (`backup` mirror, etc.) are optional — mudev sets them all up on `clone`.
+(forks) and any others (a mirror, etc.) are optional — mudev sets them all up on `clone`.
 The **public** catalogue normally carries just `origin` (and `upstream` for forks); **internal**
-remotes like backup mirrors belong in a **private overlay** (a private plugins catalogue or a
+remotes like private mirrors belong in a **private overlay** (a private plugins catalogue or a
 private recipe that inlines the plugins with extra remotes), never the public catalogue.
 
 ## Identity

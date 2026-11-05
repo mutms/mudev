@@ -412,7 +412,7 @@ func (c *cloner) assemblePlugin(ctx context.Context, p resolvedPlugin) error {
 }
 
 // setRemotes configures every remote the entry names — not just the one code
-// is cloned from, so `upstream` (a fork's source) and `backup` (a mirror) are
+// is cloned from, so `upstream` (a fork's source) and any mirror are
 // ready to use, and a moved repository is corrected in place.
 func (c *cloner) setRemotes(ctx context.Context, dir string, remotes map[string]string) error {
 	for _, name := range sortedNames(remotes) {

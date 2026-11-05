@@ -40,7 +40,7 @@
           "properties": {
             "remotes": {
               "type": "object",
-              "description": "Git remotes as name → URL string. `origin` is the primary clone remote; `upstream` (forks) and `backup` (mirror) are optional.",
+              "description": "Git remotes as name → URL string. `origin` is the primary clone remote; `upstream` (forks) and any others (a mirror) are optional.",
               "required": ["origin"],
               "additionalProperties": { "type": "string", "minLength": 1 },
               "properties": {

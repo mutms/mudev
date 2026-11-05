@@ -153,7 +153,7 @@ requirements:
 // source points at $defs/source, so a bad source there proves both keywords.
 func TestRefAndDefs(t *testing.T) {
 	// remotes.origin is required by $defs/source; drop it.
-	doc := strings.Replace(validRecipe, "        origin: https://github.com/mutms/patches.git", "        backup: https://example.org/x.git", 1)
+	doc := strings.Replace(validRecipe, "        origin: https://github.com/mutms/patches.git", "        mirror: https://example.org/x.git", 1)
 
 	if err := validate(t, KindRecipe, doc); err == nil {
 		t.Error("$ref/$defs did not resolve — a source without origin was accepted")

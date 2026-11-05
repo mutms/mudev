@@ -43,7 +43,7 @@ func orderRemotes(remotes map[string]string) []string {
 // recipe has nothing but origin, so the rule costs it nothing.
 //
 // Only origin is load-bearing. A mirror that cannot be reached — a laptop off
-// the office network, a backup host down for maintenance — is reported and
+// the office network, a mirror host down for maintenance — is reported and
 // stepped over, because failing the whole assembly over a copy of data that
 // origin also has would make the mirror a single point of failure.
 func fetchRemotes(ctx context.Context, client *git.Client, dir string, out output) error {
@@ -54,8 +54,8 @@ func fetchRemotes(ctx context.Context, client *git.Client, dir string, out outpu
 
 	ordered := orderRemotes(remotes)
 
-	// A shallow checkout — a pinned edition assembled with --depth 1 — is
-	// deepened before anything else happens. Asking for a fetch is asking
+	// A shallow checkout — assembled by an older mudev with clone --shallow —
+	// is deepened before anything else happens. Asking for a fetch is asking
 	// for history, and mudev has no business making the caller discover
 	// git's "unshallow first" errors on their own. One-way on purpose:
 	// nothing re-shallows a checkout that has been filled in.

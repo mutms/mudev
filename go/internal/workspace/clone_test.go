@@ -345,7 +345,7 @@ base:
     git:
       remotes:
         origin: ` + core + `
-        backup: ` + mirror + `
+        mirror: ` + mirror + `
       ref: origin/patch/mutms/MOODLE_502_STABLE
   localbranch: MOODLE_502_STABLE
 plugins: []
@@ -368,7 +368,7 @@ plugins: []
 	// Both remotes were fetched, not just origin: the mirror's refs are here.
 	refs := gitOut(t, root, "for-each-ref", "--format=%(refname)", "refs/remotes")
 
-	for _, want := range []string{"refs/remotes/backup/", "refs/remotes/origin/"} {
+	for _, want := range []string{"refs/remotes/mirror/", "refs/remotes/origin/"} {
 		if !strings.Contains(refs, want) {
 			t.Errorf("no %s refs — that remote was never fetched:\n%s", want, refs)
 		}
@@ -392,7 +392,7 @@ base:
     git:
       remotes:
         origin: ` + core + `
-        backup: ` + filepath.Join(base, "nowhere") + `
+        mirror: ` + filepath.Join(base, "nowhere") + `
       ref: origin/patch/mutms/MOODLE_502_STABLE
   localbranch: MOODLE_502_STABLE
 plugins: []
@@ -421,8 +421,8 @@ plugins: []
 	}
 
 	// It must be reported, though — a mirror silently not being fetched is how
-	// a backup quietly stops being one.
-	if !strings.Contains(out.String(), "could not fetch remote backup") {
+	// a mirror quietly stops being one.
+	if !strings.Contains(out.String(), "could not fetch remote mirror") {
 		t.Errorf("the unreachable mirror was not reported:\n%s", out.String())
 	}
 
@@ -488,7 +488,7 @@ base:
     git:
       remotes:
         origin: ` + core + `
-        backup: ` + mirror + `
+        mirror: ` + mirror + `
       ref: origin/patch/mutms/MOODLE_502_STABLE
   localbranch: MOODLE_502_STABLE
 plugins: []
@@ -523,7 +523,7 @@ plugins: []
 		"branch 502",         // which Moodle
 		"release:     mutms", // whether this tree can be tagged
 		"fetch origin (1/2) " + core,
-		"fetch backup (2/2) " + mirror,
+		"fetch mirror (2/2) " + mirror,
 		"checkout MOODLE_502_STABLE tracking origin/patch/mutms/MOODLE_502_STABLE",
 	}
 
@@ -534,7 +534,7 @@ plugins: []
 	}
 
 	// Origin is always fetched first.
-	if strings.Index(got, "fetch origin") > strings.Index(got, "fetch backup") {
+	if strings.Index(got, "fetch origin") > strings.Index(got, "fetch mirror") {
 		t.Errorf("origin was not fetched first:\n%s", got)
 	}
 

@@ -3,7 +3,6 @@ package recipe
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -130,30 +129,6 @@ plugins: []
 	}
 }
 
-func TestFetchOrderMustBeAList(t *testing.T) {
-	// In this flow mapping `fetch_order: forge, origin` parses as
-	// fetch_order: "forge" plus a stray `origin: null` key — not as a list.
-	// mudev used to ignore a non-list silently and fetch in its default order,
-	// which looks exactly like the setting not working; the schema now rejects
-	// the document (fetch_order must be an array, and `origin` is not a key of
-	// the mudev namespace).
-	_, err := Parse([]byte(`
-extra:
-  mudev: {release: mutms, fetch_order: forge, origin}
-base:
-  mdlbranch: "405"
-  source: {git: {remotes: {origin: x}}}
-plugins: []
-`))
-	if err == nil {
-		t.Fatal("expected a comma-separated string to be rejected")
-	}
-
-	if !strings.Contains(err.Error(), "fetch_order") {
-		t.Errorf("the error should name the key: %v", err)
-	}
-}
-
 func TestExtraStaysOpenForOtherTools(t *testing.T) {
 	// Typing mudev's own namespace must not close the door on anyone else's:
 	// extra exists so a composer assembler or a catalogue site can carry its
@@ -177,11 +152,11 @@ plugins:
 func TestMudevNamespaceIsClosed(t *testing.T) {
 	// mudev's own namespace is the one part of extra this schema defines, so a
 	// key it does not know is a typo — the setting would otherwise do nothing
-	// at all, which is exactly how a mistyped fetch_order goes unnoticed.
+	// at all, which is exactly how a mistyped key goes unnoticed.
 	cases := map[string]string{
 		"recipe level": `
 extra:
-  mudev: {release: mutms, fetchorder: [forge, origin]}
+  mudev: {relase: mutms}
 base:
   mdlbranch: "405"
   source: {git: {remotes: {origin: x}}}

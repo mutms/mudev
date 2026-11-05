@@ -59,7 +59,7 @@ func TestUpdateRefreshKeepsNameAndMetadata(t *testing.T) {
 
 	// The checkout gains a second remote — a git-identity change update records.
 	plugin := filepath.Join(root, "public", "mod", "thing")
-	runGit(t, plugin, "remote", "add", "backup", "git@mirror.example:acme/mod_thing.git")
+	runGit(t, plugin, "remote", "add", "mirror", "git@mirror.example:acme/mod_thing.git")
 
 	out, err := updateInto(t, root, "public/mod/thing")
 	if err != nil {
@@ -86,7 +86,7 @@ func TestUpdateRefreshKeepsNameAndMetadata(t *testing.T) {
 
 	remotes := refreshed["source"].(map[string]any)["git"].(map[string]any)["remotes"].(map[string]any)
 
-	if remotes["backup"] != "git@mirror.example:acme/mod_thing.git" {
+	if remotes["mirror"] != "git@mirror.example:acme/mod_thing.git" {
 		t.Errorf("the new remote was not recorded: %v", remotes)
 	}
 }
@@ -172,7 +172,7 @@ func TestUpdateAdoptsANewCheckout(t *testing.T) {
 func TestUpdateRefreshesCore(t *testing.T) {
 	root := updatedWorkspace(t)
 
-	runGit(t, root, "remote", "add", "backup", "git@mirror.example:msk/moodle.git")
+	runGit(t, root, "remote", "add", "mirror", "git@mirror.example:msk/moodle.git")
 
 	if _, err := updateInto(t, root, "."); err != nil {
 		t.Fatalf("Update core: %v", err)
@@ -185,7 +185,7 @@ func TestUpdateRefreshesCore(t *testing.T) {
 
 	remotes := live.Base["source"].(map[string]any)["git"].(map[string]any)["remotes"].(map[string]any)
 
-	if remotes["backup"] != "git@mirror.example:msk/moodle.git" {
+	if remotes["mirror"] != "git@mirror.example:msk/moodle.git" {
 		t.Errorf("core remote not recorded: %v", remotes)
 	}
 }

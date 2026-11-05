@@ -50,7 +50,7 @@ func TestOrderRemotes(t *testing.T) {
 }
 
 func TestOrderRemotesIsStable(t *testing.T) {
-	remotes := map[string]string{"origin": "o", "zeta": "z", "alpha": "a", "backup": "b"}
+	remotes := map[string]string{"origin": "o", "zeta": "z", "alpha": "a", "mirror": "b"}
 
 	// Go randomises map iteration, so the same inputs must still produce the
 	// same order every time or a run is not reproducible.
@@ -62,7 +62,7 @@ func TestOrderRemotesIsStable(t *testing.T) {
 		}
 	}
 
-	if !reflect.DeepEqual(first, []string{"origin", "alpha", "backup", "zeta"}) {
+	if !reflect.DeepEqual(first, []string{"origin", "alpha", "mirror", "zeta"}) {
 		t.Errorf("orderRemotes = %v", first)
 	}
 }

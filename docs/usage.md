@@ -19,7 +19,6 @@ workspace workflow.
 | `recipe set <key> <value>`      | name the workspace                                                |
 | `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
 | `production export <x.tgz>`     | pack the committed workspace into a deployable tarball            |
-| `camp init [relpath]`           | write camp listing manifests into the plugin checkouts            |
 
 ## Configuration
 
@@ -255,17 +254,3 @@ real path, into one tarball. Repositories not recorded in `.mudev.json` are left
 must be clean: uncommitted changes in any recorded checkout stop the run before anything is
 built. On Moodle 5.1+ (`public/` layout) it runs
 `composer install --no-dev --classmap-authoritative` at the tree root first.
-
-## Listing plugins on camp
-
-```sh
-mudev camp init                              # every recorded plugin
-mudev camp init public/admin/tool/mulib      # one plugin
-```
-
-`camp init` writes a [camp](https://camp-registry.org) listing manifest (`.camp/listing.yml`)
-into each plugin checkout, ready to commit, and adds camp's export-ignore rules to
-`.gitattributes`. The content comes from the plugin itself: its `pluginname` string, its
-README's opening line, and links from its `origin` remote. Forks are skipped. An existing
-manifest is never overwritten — edit it by hand; `--force` regenerates it. `--labels` sets the
-disclosure labels and `--no-badges` leaves out the badge; see `mudev camp init --help`.

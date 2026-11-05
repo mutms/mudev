@@ -60,6 +60,11 @@ type Repo struct {
 	// RecordedBranch only when the recipe sets a localbranch.
 	RecordedRemoteBranch string
 
+	// Release is the plugin's extra.mudev.release flavour from the live
+	// recipe; empty for core, unrecorded checkouts and plugins that are not
+	// release-managed.
+	Release string
+
 	// Status is the live git state; zero for a missing checkout.
 	Status git.Status
 
@@ -223,6 +228,7 @@ func recordedRepos(root string) (map[string]*Repo, error) {
 			Name:        entry.Name,
 			Managed:     true,
 			RecordedRef: entry.Ref(),
+			Release:     entry.Release(),
 		}
 
 		if entry.Source != nil && entry.Source.Git != nil {

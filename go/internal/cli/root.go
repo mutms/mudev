@@ -56,6 +56,7 @@ func newRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newRecipeCmd(s))
 	cmd.AddCommand(newStatusCmd(s))
 	cmd.AddCommand(newProductionCmd(s))
+	cmd.AddCommand(newReleaseCmd(s))
 
 	return cmd
 }

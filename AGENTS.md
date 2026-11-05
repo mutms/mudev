@@ -57,10 +57,12 @@ Formats: `docs/plugin-format.md` (identity, `source` kinds, `relpath`, branch re
 `docs/recipe-format.md` (refs, `extra.mudev`, flavours, clone/init/update flows). Commands:
 `docs/usage.md`.
 
-**No release tooling in this version.** Tagging, `version.php` bumps and changelogs are planned
-for Moodle 5.3 only; MuTMS releases up to 5.2 are made with an older tool. mudev only reads
-`extra.mudev.release` and warns on a flavour not in `knownFlavours`
-(`internal/workspace/clone.go`). The recommended release recipe is the `release` edition: one
+**Release tooling is for Moodle 5.3 and later only**; MuTMS releases up to 5.2 are made with an
+older tool. `release set version <YYYYMMDDxx|today>` (`internal/workspace/release.go`) sets
+`$plugin->version`, and dependencies between them, in every plugin whose entry carries the
+recipe's `extra.mudev.release` flavour; the suffix is the first and last digit of `mdlbranch`
+(503 → `53`). Tagging, `$plugin->release` and changelogs are not implemented yet. `clone` warns on
+a flavour not in `knownFlavours` (`internal/workspace/clone.go`). The recommended release recipe is the `release` edition: one
 subtree-merged repository (`mutms/mutms.git`) at a tag, `plugins: []` — no per-plugin pins.
 
 ## Package layout
@@ -84,7 +86,7 @@ go/
                  live.go     .mudev.json (the live recipe)
                  list.go     enumerate a tree; columns.go renders it
                  fanout.go   run git across every checkout (fetch, pull, status)
-                 add/prune/set/export/push/production.go — one job each
+                 add/prune/set/export/push/production/release.go — one job each
     cli/       cobra commands, one file per command
   schema/      plugin.schema.json, recipe.schema.json + the go:embed that carries them
 ```

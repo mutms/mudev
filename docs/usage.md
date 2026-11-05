@@ -19,6 +19,7 @@ workspace workflow.
 | `recipe set <key> <value>`      | name the workspace                                                |
 | `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
 | `production export <x.tgz>`     | pack the committed workspace into a deployable tarball            |
+| `release set version <v>`       | set `$plugin->version` in every release-managed plugin (5.3+)     |
 
 ## Configuration
 
@@ -254,3 +255,21 @@ real path, into one tarball. Repositories not recorded in `.mudev.json` are left
 must be clean: uncommitted changes in any recorded checkout stop the run before anything is
 built. On Moodle 5.1+ (`public/` layout) it runs
 `composer install --no-dev --classmap-authoritative` at the tree root first.
+
+## Setting the release version
+
+```sh
+mudev release set version 2026110553         # 5 November 2026 on Moodle 5.3
+mudev release set version today              # today's date + this branch's suffix
+```
+
+`release set version` sets `$plugin->version` in every release-managed plugin — one whose entry
+carries the recipe's `extra.mudev.release` flavour — and points their `$plugin->dependencies` on
+each other at the same version. It works on Moodle 5.3 and later only.
+
+The version is a real date `YYYYMMDD` followed by the branch suffix, the first and last digit of
+`mdlbranch` (503 → `53`); a value with another suffix is rejected. A plugin is skipped, with the
+reason shown, when it is not checked out, pinned to a tag or commit, recorded on a branch of
+another Moodle version (`MOODLE_503_*` is expected on 503), or checked out on a different branch.
+If the new version is lower than any plugin's current one, nothing is written. Nothing is
+committed: review the diff with `mudev status` and commit it yourself.

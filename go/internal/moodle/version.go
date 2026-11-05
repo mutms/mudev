@@ -1,10 +1,13 @@
 package moodle
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Version is what a version.php declares about the code next to it.
@@ -111,4 +114,181 @@ func readVersionFile(dir string) (string, error) {
 	}
 
 	return "", nil
+}
+
+// versionDateLayout is the date half of a MuTMS version stamp: 2026110553 is
+// 2026-11-05 on the 503 branch.
+const versionDateLayout = "20060102"
+
+// VersionSuffix is the two digits a MuTMS version stamp ends with on a Moodle
+// branch: the first and last digit of the branch code, so 503 → "53" and
+// 600 → "60". It keeps stamps of the same day on different branches apart.
+func VersionSuffix(mdlbranch string) (string, error) {
+	if len(mdlbranch) != 3 || strings.Trim(mdlbranch, "0123456789") != "" {
+		return "", fmt.Errorf("mdlbranch %q is not a three-digit Moodle branch code", mdlbranch)
+	}
+
+	return mdlbranch[:1] + mdlbranch[2:], nil
+}
+
+// DateVersion is the MuTMS version stamp for a day on a Moodle branch.
+func DateVersion(day time.Time, mdlbranch string) (string, error) {
+	suffix, err := VersionSuffix(mdlbranch)
+	if err != nil {
+		return "", err
+	}
+
+	return day.Format(versionDateLayout) + suffix, nil
+}
+
+// CheckPluginVersion verifies a MuTMS version stamp for a Moodle branch: a
+// real date as YYYYMMDD followed by the branch's suffix, nothing else.
+//
+// The suffix is the part that matters most. A 503 stamp set on a 504 branch
+// sorts as a perfectly plausible version, and nothing would notice until two
+// branches published the same number for different code.
+func CheckPluginVersion(version, mdlbranch string) error {
+	suffix, err := VersionSuffix(mdlbranch)
+	if err != nil {
+		return err
+	}
+
+	pattern := regexp.MustCompile(`^(\d{8})` + suffix + `$`)
+
+	match := pattern.FindStringSubmatch(version)
+	if match == nil {
+		return fmt.Errorf("version %q must be YYYYMMDD%s for mdlbranch %s", version, suffix, mdlbranch)
+	}
+
+	if _, err := time.Parse(versionDateLayout, match[1]); err != nil {
+		return fmt.Errorf("version %q does not start with a real date (YYYYMMDD)", version)
+	}
+
+	return nil
+}
+
+// VersionNumber is the integer part of a version stamp, for comparing two of
+// them: "2026110553.01" and "2026110553" are the same day's version.
+func VersionNumber(version string) (int64, error) {
+	whole, _, _ := strings.Cut(strings.Trim(version, "'\""), ".")
+
+	number, err := strconv.ParseInt(whole, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%q is not a version number", version)
+	}
+
+	return number, nil
+}
+
+// pluginVersionAssignment matches the whole $plugin->version assignment value,
+// quoted or not, keeping what precedes the number so the file's own alignment
+// survives a rewrite.
+var pluginVersionAssignment = regexp.MustCompile(`(\$plugin->version\s*=\s*)'?\d+(?:\.\d+)?'?`)
+
+// SetPluginVersion rewrites the $plugin->version of a version.php.
+//
+// Exactly one assignment must be there: none means this is not a plugin's
+// version.php, and two means mudev cannot know which one Moodle will see.
+func SetPluginVersion(content []byte, version string) ([]byte, error) {
+	matches := pluginVersionAssignment.FindAllIndex(content, -1)
+
+	switch len(matches) {
+	case 0:
+		return nil, fmt.Errorf("no $plugin->version assignment found")
+
+	case 1:
+		// The one expected case.
+
+	default:
+		return nil, fmt.Errorf("%d $plugin->version assignments found, expected one", len(matches))
+	}
+
+	return pluginVersionAssignment.ReplaceAll(content, []byte("${1}"+version)), nil
+}
+
+// DependencyChange is one $plugin->dependencies entry SetDependencyVersions
+// rewrote.
+type DependencyChange struct {
+	Component string
+	From      string
+	To        string
+}
+
+// dependenciesStart finds where a $plugin->dependencies array opens, in either
+// spelling PHP allows.
+var dependenciesStart = regexp.MustCompile(`\$plugin->dependencies\s*=\s*(\[|array\s*\()`)
+
+// SetDependencyVersions points the $plugin->dependencies entries for the given
+// components at version, and reports each entry it changed.
+//
+// MuTMS plugins are released together, so a plugin that depends on another
+// one of them depends on the version released alongside it. Only numeric
+// entries inside the dependencies array are rewritten: ANY_VERSION stays, and
+// a component named anywhere else in the file is not a dependency.
+func SetDependencyVersions(content []byte, components []string, version string) ([]byte, []DependencyChange, error) {
+	loc := dependenciesStart.FindSubmatchIndex(content)
+	if loc == nil {
+		return content, nil, nil
+	}
+
+	// The group is "[" or "array(": its last byte is the bracket.
+	open := content[loc[3]-1]
+
+	closer := byte(']')
+	if open != '[' {
+		closer = ')'
+	}
+
+	start := loc[1]
+
+	end := matchingClose(content, start, open, closer)
+	if end < 0 {
+		return nil, nil, fmt.Errorf("$plugin->dependencies array is not closed")
+	}
+
+	block := content[start:end]
+
+	var changes []DependencyChange
+
+	for _, component := range components {
+		entry := regexp.MustCompile(`(['"]` + regexp.QuoteMeta(component) + `['"]\s*=>\s*)'?(\d+(?:\.\d+)?)'?`)
+
+		for _, match := range entry.FindAllSubmatch(block, -1) {
+			if string(match[2]) != version {
+				changes = append(changes, DependencyChange{Component: component, From: string(match[2]), To: version})
+			}
+		}
+
+		block = entry.ReplaceAll(block, []byte("${1}"+version))
+	}
+
+	result := make([]byte, 0, len(content)-(end-start)+len(block))
+	result = append(result, content[:start]...)
+	result = append(result, block...)
+	result = append(result, content[end:]...)
+
+	return result, changes, nil
+}
+
+// matchingClose finds the bracket closing the one opened just before start,
+// or -1. Component names and version numbers contain no brackets, so counting
+// them is enough for a version.php.
+func matchingClose(content []byte, start int, open, closer byte) int {
+	depth := 1
+
+	for i := start; i < len(content); i++ {
+		switch content[i] {
+		case open:
+			depth++
+
+		case closer:
+			depth--
+
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+
+	return -1
 }

@@ -148,8 +148,9 @@ you. The schema and the binary ship together, so a new mudev key arrives with th
 reads it; anyone else reusing this format writes their own `extra.<tool>` namespace, which the
 schema does not constrain.
 
-The schema accepts `release`, reserved for release tooling that this version does not include;
-mudev only warns when the name is not one it knows. `fetch_order` is deprecated and ignored: it
+`release` names the release flavour. On Moodle 5.3 and later, `mudev release set version` acts
+on the plugins whose entry carries the recipe's flavour; tagging and changelogs are not
+implemented yet. mudev warns when the name is not one it knows. `fetch_order` is deprecated and ignored: it
 is still accepted so live recipes of older workspaces load, and mudev drops it when it rewrites
 them. mudev fetches `origin` first and the rest alphabetically, and Moodle core is sped up by the
 local mirror instead (see `docs/usage.md`).

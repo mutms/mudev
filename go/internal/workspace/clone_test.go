@@ -309,6 +309,51 @@ func TestCloneIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestCloneCreatesAMissingDirectory(t *testing.T) {
+	recipePath, root := workspaceFixture(t, "502")
+	target := filepath.Join(root, "nested", "moodle")
+
+	err := Clone(context.Background(), Options{
+		Config: testConfig(),
+		Recipe: recipePath,
+		Root:   target,
+		Out:    io.Discard,
+	})
+	if err == nil {
+		t.Fatal("Clone without CreateRoot accepted a missing directory")
+	}
+
+	opts := Options{
+		Config:     testConfig(),
+		Recipe:     filepath.Join(filepath.Dir(recipePath), "missing.yaml"),
+		Root:       target,
+		CreateRoot: true,
+		Out:        io.Discard,
+	}
+
+	if err := Clone(context.Background(), opts); err == nil {
+		t.Fatal("Clone accepted a missing recipe")
+	}
+
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Errorf("a failed recipe load left %s behind", target)
+	}
+
+	opts.Recipe = recipePath
+
+	if err := Clone(context.Background(), opts); err != nil {
+		t.Fatalf("Clone: %v", err)
+	}
+
+	if _, err := LoadLive(target); err != nil {
+		t.Errorf("LoadLive: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(target, "public", "admin", "tool", "mulib")); err != nil {
+		t.Errorf("plugin not assembled: %v", err)
+	}
+}
+
 // gitFails reports whether a git command exits non-zero — for asserting the
 // absence of a thing, such as the upstream a shallow branch must not have.
 func gitFails(t *testing.T, dir string, args ...string) bool {

@@ -45,9 +45,13 @@ type Options struct {
 	// catalogue identifier.
 	Recipe string
 
-	// Root is the workspace directory to assemble into. mudev never creates
-	// it — the caller has already made it with the right owner and permissions.
+	// Root is the workspace directory to assemble into. An existing directory
+	// is used as it is, keeping its owner and permissions.
 	Root string
+
+	// CreateRoot creates Root, with any missing parents, when it does not
+	// exist yet. Without it a missing Root is an error.
+	CreateRoot bool
 
 	// Out receives mudev's own progress lines. git's output goes straight to
 	// the terminal, as usual.
@@ -84,8 +88,15 @@ func Clone(ctx context.Context, opts Options) error {
 		return err
 	}
 
-	if info, err := os.Stat(root); err != nil || !info.IsDir() {
+	info, err := os.Stat(root)
+	missing := os.IsNotExist(err)
+
+	switch {
+	case missing && opts.CreateRoot:
+	case err != nil:
 		return fmt.Errorf("workspace directory %s does not exist", root)
+	case !info.IsDir():
+		return fmt.Errorf("workspace %s is not a directory", root)
 	}
 
 	c := &cloner{
@@ -96,6 +107,13 @@ func Clone(ctx context.Context, opts Options) error {
 
 	if err := c.load(opts.Recipe); err != nil {
 		return err
+	}
+
+	// Created only after the recipe loads, so a typo leaves no empty directory.
+	if missing {
+		if err := os.MkdirAll(root, 0o755); err != nil {
+			return err
+		}
 	}
 
 	c.banner()

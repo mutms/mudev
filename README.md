@@ -50,8 +50,7 @@ Two commands cover most of what people need:
 plugin checked out at its place:
 
 ```sh
-mkdir -p /srv/projects/mutms52 && cd /srv/projects/mutms52
-mudev clone mutms/release/5.2.4.01
+mudev clone mutms/release/5.2.4.01 /srv/projects/mutms52
 ```
 
 The recipe is either a catalogue identifier (`vendor/stream/version`) or a path to a recipe

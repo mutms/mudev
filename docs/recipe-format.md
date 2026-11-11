@@ -189,7 +189,7 @@ Then:
    `mdlbranch` (tracked from `origin`). For a branch ref, create the local branch (`localbranch`,
    default = the remote branch name); a tag/commit is checked out detached.
 4. Resolve each plugin's install `relpath` (`strippublic` strips `public/` when set).
-5. Install each plugin at `<resolved-relpath>` (under the current directory) at the resolved ref, **processed sorted by
+5. Install each plugin at `<resolved-relpath>` (under the workspace directory) at the resolved ref, **processed sorted by
    `relpath` (ancestors first)** so a subplugin lands inside its already-present parent
    (`…/certificate` before `…/certificate/element/muprog`). The recipe's list order is for
    humans (release grouping); it is **not** the assembly order.

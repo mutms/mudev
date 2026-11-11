@@ -81,7 +81,7 @@ go/
     exec/      the single process gateway — ONLY package that imports os/exec
     git/       git wrapper over exec; URLs pass through untouched
     workspace/ orchestration, split by job rather than by command:
-                 clone.go    assemble a recipe into the current directory
+                 clone.go    assemble a recipe into the workspace directory
                  resolve.go  recipe entry + catalogue → install-ready description
                  live.go     .mudev.json (the live recipe)
                  list.go     enumerate a tree; columns.go renders it

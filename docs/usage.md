@@ -6,7 +6,7 @@ workspace workflow.
 
 | Command                         | What it does                                                      |
 |---------------------------------|-------------------------------------------------------------------|
-| `clone <recipe>`                | assemble a tree into the current directory; idempotent, resumable |
+| `clone <recipe> [<dir>]`        | assemble a tree into `<dir>` or `.`; idempotent, resumable        |
 | `list`                          | one line per checkout — state, branch, version, release           |
 | `status [git args…]`            | git status, only where there is something to report               |
 | `fetch`                         | every remote of every checkout, in the recipe's order             |
@@ -50,12 +50,13 @@ git config --global url."git@github.com:".insteadOf "https://github.com/"
 
 ```sh
 ssh mpd-NNN -A
-mkdir -p /srv/projects/mutms52 && cd /srv/projects/mutms52   # mudev never creates the directory,
-mudev clone mutms/dev/5.2                                    # so it keeps your owner/permissions
+mudev clone mutms/dev/5.2 /srv/projects/mutms52
 ```
 
 `clone` takes either a catalogue identifier (`vendor/stream/version`) or a path to a recipe
-file. It checks Moodle core out into the current directory and every plugin as its own git
+file, and optionally a directory, as `git clone` does. A directory that does not exist is
+created; an existing one keeps its owner and permissions. Without a directory, `clone` uses
+the current one. It checks Moodle core out into that directory and every plugin as its own git
 repository at its place in the tree, excluded in the surrounding repo so `git status` stays
 clean. What it did is recorded step by step in `.mudev.json` (the *live recipe*), and the
 command is idempotent: run it again to resume an interrupted clone, or to pick up plugins the

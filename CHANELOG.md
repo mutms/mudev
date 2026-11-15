@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `git set <key> <value>`: sets a git config value in the local config of every repository in the
+  current directory and below, for example a per-project `user.name` and `user.email`.
 - `release set version <YYYYMMDDxx|today>`: sets `$plugin->version`, and the dependencies between
   them, in every release-managed plugin; Moodle 5.3 and later only. The value must end with the
   branch suffix (`53` on 503), and a downgrade writes nothing.

@@ -12,6 +12,7 @@ workspace workflow.
 | `fetch`                         | every remote of every checkout, in the recipe's order             |
 | `pull`                          | `git pull --ff-only` everywhere; stops at a divergence            |
 | `push`                          | push plugins to origin — never core, only on the recorded branch  |
+| `git set <key> <value>`         | set a git config value in every repository below this directory   |
 | `recipe init`                   | reconstruct `.mudev.json` from the checkouts already in the tree  |
 | `recipe update <relpath>`       | fold one checkout's current state into `.mudev.json`              |
 | `recipe add <plugin>`           | check a plugin out and record it                                  |
@@ -183,6 +184,28 @@ One key and one value per call, the way `git config user.name "…"` works. Sett
 `description`, `contributed_by`. Everything else in the recipe is a record of what mudev actually
 did and changes by cloning, adding and pruning — and `based_on_recipe` is provenance, crediting
 the recipe this workspace was adapted from, so it is deliberately not editable.
+
+## Committing under a different identity
+
+When `~/.gitconfig` carries one identity and a project needs another, set it for the whole
+tree in one go:
+
+```sh
+cd /srv/projects/mutms52
+mudev git set user.name "Your Name"
+mudev git set user.email you@example.org
+```
+
+`git set` runs `git config <key> <value>` in every repository in the current directory and
+below, so the value lands in each `.git/config` and overrides `~/.gitconfig` there only. It
+searches the directory tree rather than reading `.mudev.json`, so it works in any directory and
+reaches checkouts nobody recorded; `node_modules` and `vendor` are not searched. Run from a
+plugin directory, it touches that plugin and whatever is nested in it.
+
+Nothing is remembered: a plugin added later has no such setting until you run the command
+again. A repository git refuses to write to is reported at the end; the others are still set.
+The command is meant for identity and similar local settings — authentication stays in git's
+own configuration, as described under [Configuration](#configuration).
 
 ## Adopting a tree you already have
 

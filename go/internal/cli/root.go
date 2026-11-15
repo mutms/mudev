@@ -51,6 +51,7 @@ func newRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newCloneCmd(s))
 	cmd.AddCommand(newListCmd(s))
 	cmd.AddCommand(newFetchCmd(s))
+	cmd.AddCommand(newGitCmd(s))
 	cmd.AddCommand(newPullCmd(s))
 	cmd.AddCommand(newPushCmd(s))
 	cmd.AddCommand(newRecipeCmd(s))

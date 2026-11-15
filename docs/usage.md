@@ -17,6 +17,7 @@ workspace workflow.
 | `recipe update <relpath>`       | fold one checkout's current state into `.mudev.json`              |
 | `recipe add <plugin>`           | check a plugin out and record it                                  |
 | `recipe prune`                  | forget plugins whose directories are gone                         |
+| `recipe reclone`                | apply hand edits of `.mudev.json` to the tree                     |
 | `recipe set <key> <value>`      | name the workspace                                                |
 | `recipe export [--file x.yaml]` | render the workspace as a portable recipe                         |
 | `production export <x.tgz>`     | pack the committed workspace into a deployable tarball            |
@@ -168,6 +169,34 @@ closing line says so.
 
 `fetch` contacts **every** remote a checkout has, `origin` first and the rest alphabetically. A
 remote that is unreachable is reported and stepped over; an unreachable `origin` stops the run.
+
+## Applying hand edits to `.mudev.json`
+
+`.mudev.json` is a complete recipe, so it can be edited like one. `recipe reclone` then assembles
+the workspace again from that file, which is how an edit reaches the tree. The usual reason is
+switching a workspace cloned from a public recipe over to ssh remotes:
+
+```sh
+mudev clone mutms/dev/5.3 ws && cd ws
+sed -i 's|https://github.com/mutms/|git@github.com:mutms/|' .mudev.json
+mudev recipe reclone
+mudev fetch
+```
+
+What it does, per entry:
+
+- **A checkout that already exists** gets the entry's remotes added, or re-pointed where the URL
+  differs — each change is printed. Nothing else happens to it: it is not fetched, pulled or
+  switched, even when you edited the entry's `ref`, because you may be on a feature branch. Run
+  `mudev fetch` afterwards to use the new remotes.
+- **An entry with no checkout** is checked out like any new plugin. A bare
+  `{"name": "mutms/tool_mulib"}` resolves in the plugin catalogue, exactly as in a recipe, and is
+  written back flattened.
+
+It only ever adds. A remote you deleted from an entry stays in the checkout — it could as well be
+one you added with `git remote add` — and a plugin you deleted from the file keeps its directory
+(`recipe update <relpath>` records it again). Every entry is resolved before git changes anything,
+so a mistake in the file stops the command with the tree as it was.
 
 ## Naming what you built
 

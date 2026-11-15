@@ -225,7 +225,8 @@ workspace. It **changes no working tree**; it only reads git state and writes th
 
 The result is a fully flattened, self-contained live recipe — the same shape clone writes — so
 `recipe export` and every fan-out command work against it. The reconstructed names are **mudev's
-own state keys**, not a claim about any catalogue: edit them with `recipe set` or in the file. To
+own state keys**, not a claim about any catalogue: edit them with `recipe set` or in the file
+(`recipe reclone` applies an edit of the file that concerns the tree — remotes, new entries). To
 keep that state safe, init **refuses to overwrite an existing `.mudev.json`** (remove it first to
 reconstruct from scratch). It reads no plugin catalogue — everything comes from the checkouts —
 and so records no `requirements` or `based_on_recipe`; it is a snapshot of the tree, not an

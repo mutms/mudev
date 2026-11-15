@@ -144,6 +144,22 @@ func (c *cloner) reportRequirements(p resolvedPlugin) {
 // openWorkspace loads the live recipe as the recipe driving this run, and
 // makes sure the tree underneath it is still the Moodle it claims to be.
 func (c *cloner) openWorkspace() error {
+	if err := c.loadWorkspace(); err != nil {
+		return err
+	}
+
+	// Same rule as clone: a plugin installed into a tree that is not the Moodle
+	// it claims to be is just a directory.
+	if err := c.verifyBase(); err != nil {
+		return fmt.Errorf("base: %w", err)
+	}
+
+	return nil
+}
+
+// loadWorkspace loads the live recipe as the recipe driving this run, without
+// looking at the tree yet.
+func (c *cloner) loadWorkspace() error {
 	live, err := LoadLive(c.root)
 	if err != nil {
 		return err
@@ -164,15 +180,11 @@ func (c *cloner) openWorkspace() error {
 	}
 
 	// A live recipe records no catalog of its own: every entry in it is already
-	// flattened, so the only thing still needing a catalogue is the plugin
-	// being added now, which resolves in the configured one.
+	// flattened, so the only thing still needing a catalogue is a plugin that
+	// is new to the workspace — the one `recipe add` was given, or a bare
+	// entry written into the file by hand — which resolves in the configured
+	// one.
 	c.use(r, c.cfg.PluginsDir)
-
-	// Same rule as clone: a plugin installed into a tree that is not the Moodle
-	// it claims to be is just a directory.
-	if err := c.verifyBase(); err != nil {
-		return fmt.Errorf("base: %w", err)
-	}
 
 	return nil
 }

@@ -23,6 +23,7 @@ func newRecipeCmd(s *settings) *cobra.Command {
 	cmd.AddCommand(newRecipeInitCmd(s))
 	cmd.AddCommand(newRecipeUpdateCmd(s))
 	cmd.AddCommand(newRecipeAddCmd(s))
+	cmd.AddCommand(newRecipeRecloneCmd(s))
 	cmd.AddCommand(newRecipePruneCmd())
 	cmd.AddCommand(newRecipeSetCmd())
 	cmd.AddCommand(newRecipeExportCmd())
@@ -210,6 +211,44 @@ func newRecipePruneCmd() *cobra.Command {
 			return workspace.Prune(workspace.PruneOptions{
 				Root: root,
 				Out:  cmd.OutOrStdout(),
+			})
+		},
+	}
+
+	return cmd
+}
+
+// newRecipeRecloneCmd builds `mudev recipe reclone`.
+func newRecipeRecloneCmd(s *settings) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reclone",
+		Short: "Apply .mudev.json to the workspace after editing it by hand",
+		Long: "Assemble the current workspace again from its own .mudev.json, so that changes\n" +
+			"you made to that file by hand reach the tree.\n\n" +
+			"The typical use is switching remotes: a workspace cloned from a public recipe has\n" +
+			"https://github.com/… remotes, and replacing them in .mudev.json with\n" +
+			"git@github.com:… ones and running this re-points every checkout. A remote added to\n" +
+			"an entry is added to its checkout, and a plugin entry added to the file is checked\n" +
+			"out — a bare {\"name\": \"vendor/package\"} entry resolves in the plugin catalogue,\n" +
+			"as it would in a recipe.\n\n" +
+			"Checkouts that already exist only have their remotes adjusted. They are not\n" +
+			"fetched, pulled or switched, even when you edited the entry's ref: you may be on a\n" +
+			"feature branch. Run `mudev fetch` afterwards to use the new remotes.\n\n" +
+			"Nothing is removed. A remote you deleted from an entry stays in the checkout, and\n" +
+			"a plugin you deleted from the file keeps its directory. Every entry is resolved\n" +
+			"before git changes anything, so a mistake in the file leaves the tree as it was.",
+		Args: cobra.NoArgs,
+
+		RunE: func(cmd *cobra.Command, args []string) error {
+			root, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+
+			return workspace.Reclone(cmd.Context(), workspace.RecloneOptions{
+				Config: s.cfg,
+				Root:   root,
+				Out:    cmd.OutOrStdout(),
 			})
 		},
 	}

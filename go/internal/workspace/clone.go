@@ -75,6 +75,12 @@ type cloner struct {
 	// resuming records that a live recipe was already there — this run is
 	// continuing or catching up an existing workspace, not starting one.
 	resuming bool
+
+	// created counts the checkouts this run made, and remoteChanges the
+	// remotes it added or re-pointed in checkouts that were already there —
+	// the two things a run over an existing workspace can have done.
+	created       int
+	remoteChanges int
 }
 
 // Clone assembles the recipe into the workspace root.
@@ -146,11 +152,8 @@ func (c *cloner) load(arg string) error {
 		return err
 	}
 
-	if len(r.Base.Patches) > 0 {
-		return fmt.Errorf(
-			"%s: base.patches is not implemented — point base.source at a pre-merged core branch",
-			r.File,
-		)
+	if err := refusePatches(r); err != nil {
+		return err
 	}
 
 	catalogDir := c.cfg.PluginsDir
@@ -168,6 +171,19 @@ func (c *cloner) load(arg string) error {
 	c.use(r, catalogDir)
 
 	return c.loadLive()
+}
+
+// refusePatches rejects a recipe that asks for core patches, which are parsed
+// but not applied: assembling it anyway would build a core nobody asked for.
+func refusePatches(r *recipe.Recipe) error {
+	if len(r.Base.Patches) > 0 {
+		return fmt.Errorf(
+			"%s: base.patches is not implemented — point base.source at a pre-merged core branch",
+			r.File,
+		)
+	}
+
+	return nil
 }
 
 // use settles the run around one recipe document: its release flavour, the git
@@ -318,7 +334,7 @@ func (c *cloner) assembleBase(ctx context.Context) error {
 	default:
 		c.printf("base: already checked out")
 
-		if err := c.setRemotes(ctx, c.root, gs.Remotes); err != nil {
+		if err := c.adjustRemotes(ctx, c.root, gs.Remotes); err != nil {
 			return err
 		}
 	}
@@ -388,7 +404,7 @@ func (c *cloner) assemblePlugin(ctx context.Context, p resolvedPlugin) error {
 		// — the developer may well be on a feature branch.
 		c.printf("%s: already checked out", p.Path)
 
-		if err := c.setRemotes(ctx, dir, p.Remotes); err != nil {
+		if err := c.adjustRemotes(ctx, dir, p.Remotes); err != nil {
 			return err
 		}
 
@@ -416,6 +432,8 @@ func (c *cloner) assemblePlugin(ctx context.Context, p resolvedPlugin) error {
 		if err := c.client.SubmoduleUpdate(ctx, dir); err != nil {
 			return err
 		}
+
+		c.created++
 	}
 
 	repo, relative := containingRepo(c.root, p.Path)
@@ -437,6 +455,44 @@ func (c *cloner) setRemotes(ctx context.Context, dir string, remotes map[string]
 		if err := c.client.SetRemote(ctx, dir, name, remotes[name]); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// adjustRemotes is setRemotes for a checkout that already exists: it says what
+// it changed, because nothing else will.
+//
+// A new checkout announces its remotes as it fetches them. An existing one is
+// not fetched, so a remote that was added or re-pointed — a repository that
+// moved, or an https URL swapped for an ssh one in the live recipe — would
+// otherwise change without a word. A remote the entry does not name is left
+// alone: it may be one the developer added by hand.
+func (c *cloner) adjustRemotes(ctx context.Context, dir string, remotes map[string]string) error {
+	before, err := c.client.Remotes(ctx, dir)
+	if err != nil {
+		return err
+	}
+
+	if err := c.setRemotes(ctx, dir, remotes); err != nil {
+		return err
+	}
+
+	for _, name := range sortedNames(remotes) {
+		have, existed := before[name]
+
+		switch {
+		case !existed:
+			c.stepf("remote %s added: %s", name, remotes[name])
+
+		case have != remotes[name]:
+			c.stepf("remote %s: %s → %s", name, have, remotes[name])
+
+		default:
+			continue
+		}
+
+		c.remoteChanges++
 	}
 
 	return nil

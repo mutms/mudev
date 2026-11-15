@@ -87,6 +87,7 @@ go/
                  list.go     enumerate a tree; columns.go renders it
                  fanout.go   run git across every checkout (fetch, pull, status)
                  gitset.go   git config into every repository found by walking the tree
+                 reclone.go  assemble again from the live recipe, after a hand edit
                  add/prune/set/export/push/production/release.go — one job each
     cli/       cobra commands, one file per command
   schema/      plugin.schema.json, recipe.schema.json + the go:embed that carries them
@@ -125,6 +126,9 @@ entries on the decoded `Raw` maps, so fields mudev does not model survive into t
   the rest. Being behind is shown by `list` as `N↓`.
 - **mudev never deletes plugin code.** The developer deletes the directory; `recipe prune`
   reconciles the record.
+- **`recipe reclone` is `clone` with `.mudev.json` as the recipe**, for applying hand edits. An
+  existing checkout only gets remotes added or re-pointed — no fetch, no switch, no remote removed;
+  a new entry is checked out. All entries resolve before any git write.
 - **A flattened recipe is used exactly as written.** An entry with its own `relpath` and remotes
   never consults the catalogue, so an exported recipe builds the same tree anywhere.
 - **Requirements are reported, not enforced.** `recipe add` lists missing dependencies; Moodle

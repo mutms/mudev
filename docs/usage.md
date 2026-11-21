@@ -93,6 +93,7 @@ that uses it.
 ```sh
 mudev list                       # every checkout, its state, branch and release
 mudev list --columns path,state,recorded
+mudev list --format=json         # every column, one JSON object per checkout
 ```
 
 ```

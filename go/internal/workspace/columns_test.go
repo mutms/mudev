@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -236,5 +237,54 @@ func TestSortReposPutsCoreFirst(t *testing.T) {
 		if repos[i].Path != path {
 			t.Errorf("row %d = %q, want %q", i, repos[i].Path, path)
 		}
+	}
+}
+
+func TestRenderJSON(t *testing.T) {
+	repos := []Repo{
+		{Path: CoreDir, Core: true, Managed: true, Status: git.Status{Branch: "main", Head: "abc", Dirty: true}},
+		{Path: "local/x", Name: "local_x", Managed: true, Status: git.Status{Head: "def", Tags: []string{"v1"}}},
+	}
+
+	var out strings.Builder
+
+	if err := RenderJSON(&out, repos, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	var rows []map[string]any
+
+	if err := json.Unmarshal([]byte(out.String()), &rows); err != nil {
+		t.Fatalf("not JSON: %v\n%s", err, out.String())
+	}
+
+	if len(rows) != 2 {
+		t.Fatalf("rows = %d, want 2", len(rows))
+	}
+
+	if len(rows[0]) != len(KnownColumns()) {
+		t.Errorf("columns = %d, want all %d", len(rows[0]), len(KnownColumns()))
+	}
+
+	if rows[0]["state"] != "*" || rows[0]["head"] != "abc" {
+		t.Errorf("core row = %v", rows[0])
+	}
+
+	if tags, ok := rows[0]["tags"].([]any); !ok || len(tags) != 0 {
+		t.Errorf("core tags = %#v, want empty array", rows[0]["tags"])
+	}
+
+	if tags, ok := rows[1]["tags"].([]any); !ok || len(tags) != 1 || tags[0] != "v1" {
+		t.Errorf("plugin tags = %#v", rows[1]["tags"])
+	}
+
+	out.Reset()
+
+	if err := RenderJSON(&out, repos, []string{"path"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(out.String(), "head") {
+		t.Errorf("--columns path still printed head:\n%s", out.String())
 	}
 }

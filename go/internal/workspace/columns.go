@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -34,6 +35,9 @@ type Column struct {
 
 	// Value renders the column for one repository.
 	Value func(Repo) string
+
+	// JSON is the column's value in a JSON listing; nil means Value.
+	JSON func(Repo) any
 }
 
 // columns is the registry. Everything a listing can show lives here, whether
@@ -75,6 +79,13 @@ var columns = map[string]Column{
 		Title: "Tags",
 		Value: func(r Repo) string {
 			return strings.Join(r.Status.Tags, ", ")
+		},
+		JSON: func(r Repo) any {
+			if r.Status.Tags == nil {
+				return []string{}
+			}
+
+			return r.Status.Tags
 		},
 	},
 	"name": {
@@ -236,6 +247,41 @@ func RenderList(w io.Writer, repos []Repo, names []string) error {
 	}
 
 	return nil
+}
+
+// RenderJSON writes the repositories as a JSON array, one object per
+// checkout keyed by column name. With no columns chosen it includes them all.
+func RenderJSON(w io.Writer, repos []Repo, names []string) error {
+	if len(names) == 0 {
+		names = KnownColumns()
+	}
+
+	selected, err := selectColumns(names)
+	if err != nil {
+		return err
+	}
+
+	rows := make([]map[string]any, 0, len(repos))
+
+	for _, repo := range repos {
+		row := make(map[string]any, len(selected))
+
+		for _, column := range selected {
+			if column.JSON != nil {
+				row[column.Name] = column.JSON(repo)
+			} else {
+				row[column.Name] = column.Value(repo)
+			}
+		}
+
+		rows = append(rows, row)
+	}
+
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+
+	return enc.Encode(rows)
 }
 
 // selectColumns resolves column names to their definitions.

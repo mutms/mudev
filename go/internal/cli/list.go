@@ -14,6 +14,8 @@ import (
 func newListCmd(s *settings) *cobra.Command {
 	var columns []string
 
+	var format string
+
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Show every checkout in the workspace and its git state",
@@ -29,11 +31,17 @@ func newListCmd(s *settings) *cobra.Command {
 			"  " + workspace.MarkerUnmanaged + "   a checkout the live recipe does not record\n" +
 			"  " + workspace.MarkerMissing + "   recorded by the live recipe but not on disk\n\n" +
 			"Columns: " + strings.Join(workspace.KnownColumns(), ", ") + "\n" +
-			"(default: " + strings.Join(workspace.DefaultColumns(), ", ") + ")",
+			"(default: " + strings.Join(workspace.DefaultColumns(), ", ") + ")\n\n" +
+			"--format=json prints a JSON array with one object per checkout, keyed by\n" +
+			"column name. It includes every column unless --columns chooses some.",
 		Args:    cobra.NoArgs,
 		Aliases: []string{"ls"},
 
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if format != "table" && format != "json" {
+				return fmt.Errorf("unknown format %q — use table or json", format)
+			}
+
 			root, err := os.Getwd()
 			if err != nil {
 				return err
@@ -45,6 +53,10 @@ func newListCmd(s *settings) *cobra.Command {
 			})
 			if err != nil {
 				return err
+			}
+
+			if format == "json" {
+				return workspace.RenderJSON(cmd.OutOrStdout(), repos, columns)
 			}
 
 			// Silence would look the same as a broken command; say so, but on
@@ -61,6 +73,8 @@ func newListCmd(s *settings) *cobra.Command {
 
 	cmd.Flags().StringSliceVar(&columns, "columns", nil,
 		"columns to show, comma separated (default: "+strings.Join(workspace.DefaultColumns(), ",")+")")
+
+	cmd.Flags().StringVar(&format, "format", "table", "output format: table or json")
 
 	return cmd
 }

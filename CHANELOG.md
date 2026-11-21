@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `list --format=json`: one JSON object per checkout, keyed by column name, for scripts. It
+  includes every column unless `--columns` chooses some.
 - `git set <key> <value>`: sets a git config value in the local config of every repository in the
   current directory and below, for example a per-project `user.name` and `user.email`.
 - `release set version <YYYYMMDDxx|today>`: sets `$plugin->version`, and the dependencies between
